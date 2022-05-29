@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "parser.h": "c",
+        "random": "c",
+        "vector": "c"
+    }
+}
