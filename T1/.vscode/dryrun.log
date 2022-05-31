@@ -1,0 +1,11 @@
+make --dry-run --keep-going --print-directory
+make: Entering directory '/home/alice/Documents/USP/2022.1/COMPILADORES/T1'
+mkdir -p build
+gcc			 -c -o build/lexer.o src/lexer.c  -g -Wall 
+mkdir -p build
+gcc			 -c -o build/parser.o src/parser.c  -g -Wall 
+mkdir -p build
+gcc			 -c -o build/vector.o src/vector.c  -g -Wall 
+gcc			 -o compiler build/main.o build/lexer.o build/parser.o build/vector.o  -g -Wall  
+make: Leaving directory '/home/alice/Documents/USP/2022.1/COMPILADORES/T1'
+ 

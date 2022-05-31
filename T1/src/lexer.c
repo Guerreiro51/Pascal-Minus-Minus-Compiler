@@ -33,8 +33,8 @@ void fillWord(char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUM
 void buildProtectedSymbolMatrix( char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS] ){
     
     // invalid state by default
-    for(char i = 0; i < NUMBER_OF_STATES_PROTECTED_SYMBOLS; i++)
-        for(char j = 0; j < NUMBER_OF_LOWER_CASE_LETTERS; j++)
+    for(int i = 0; i < NUMBER_OF_STATES_PROTECTED_SYMBOLS; i++)
+        for(int j = 0; j < NUMBER_OF_LOWER_CASE_LETTERS; j++)
             protectedSymbolMatrix[i][j] = -1;
     
     fillWord(protectedSymbolMatrix, "begin", 1, true);  
@@ -55,7 +55,7 @@ void buildProtectedSymbolMatrix( char protectedSymbolMatrix[NUMBER_OF_STATES_PRO
 }
 
 void fillOther(char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS], int startState, int endState) {
-    for(char i = 0; i < NUMBER_OF_CHARS; i++)
+    for(int i = 0; i < NUMBER_OF_CHARS; i++)
         if(transitionMatrix[startState][i] == -1)
             transitionMatrix[startState][i] = endState;
 }
@@ -107,9 +107,9 @@ void buildProtectedSymbolFinalStates( char protectedSymbolFinalState[NUMBER_OF_S
     static const char finals[] = {5, 10, 13, 16, 18, 24, 27, 34, 40, 44, 45, 49, 52, 57, 61};
     static const char classes[] = {BEGIN, CONST, END, ELSE, IF, INTEGER, FOR, PROGRAM, PROCEDURE, REAL, READ, THEN, VAR, WRITE, WHILE};
     
-    for(char i = 0; i < NUMBER_OF_STATES_PROTECTED_SYMBOLS; i++)
+    for(int i = 0; i < NUMBER_OF_STATES_PROTECTED_SYMBOLS; i++)
         protectedSymbolFinalState[i] = ID;
-    for(char i = 0; i < sizeof finals; i++)
+    for(int i = 0; i < sizeof finals; i++)
         protectedSymbolFinalState[finals[i]] = classes[i];
 
 }
@@ -123,30 +123,30 @@ void buildProtectedSymbolFinalStates( char protectedSymbolFinalState[NUMBER_OF_S
 **/
 void buildTransitionMatrix( char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS] ) {
     // invalid state by default
-    for(char i = 0; i < NUMBER_OF_STATES; i++)
-        for(char j = 0; j < NUMBER_OF_CHARS; j++)
+    for(int i = 0; i < NUMBER_OF_STATES; i++)
+        for(int j = 0; j < NUMBER_OF_CHARS; j++)
             transitionMatrix[i][j] = -1;
     
     // IDENTIFIERS 
     fillOther(transitionMatrix, 0, 3);
     transitionMatrix[0]['_'] = 1;
     transitionMatrix[1]['_'] = 1;
-    for(char i = 'a'; i <= 'z'; i++) {
+    for(int i = 'a'; i <= 'z'; i++) {
         transitionMatrix[0][i] = 1;
         transitionMatrix[1][i] = 1;
     }
-    for(char i = 'A'; i <= 'Z'; i++) {
+    for(int i = 'A'; i <= 'Z'; i++) {
         transitionMatrix[0][i] = 1;
         transitionMatrix[1][i] = 1;
     }
-    for(char i = '0'; i <= '9'; i++)
+    for(int i = '0'; i <= '9'; i++)
         transitionMatrix[1][i] = 1;
     
     // NUMBERS
     transitionMatrix[0]['+'] = 4; // Vamo ta vendo de ver o last
     transitionMatrix[0]['-'] = 4; // Vamo ta vendo de ver o last
     transitionMatrix[6]['.'] = 8;
-    for(char i = '0'; i <= '9'; i++) {
+    for(int i = '0'; i <= '9'; i++) {
         transitionMatrix[0][i] = 6;     // integer part, first number
         transitionMatrix[4][i] = 6;     // integer part, first number after signal
         transitionMatrix[6][i] = 6;     // integer part, following numbers
