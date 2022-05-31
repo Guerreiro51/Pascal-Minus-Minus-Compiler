@@ -8,7 +8,10 @@ typedef struct {
 } String;
 
 void stringInit(String* s);
+void expand(String* s, unsigned long newCapacity);
 void append(String* s, char c);
+void writeToString(String* s, const char cstr[]);
+
 
 
 #endif // VECTOR_H

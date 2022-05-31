@@ -1,24 +1,34 @@
+/**
+ * @file lexer.c
+ * @brief Lexical analyser (lexer) implementation
+ */
 #include <stdbool.h>
 #include <string.h>
-#include "lexer.h"
+#include "../header/lexer.h"
 
+#pragma GCC diagnostic ignored "-Wchar-subscripts"
+/************************************** LEXER INITIALIZATION **************************************/
+
+/**
+ * @brief Builds structures needed for lexer operation.
+ * @param lexer 
+ */
 void lexerInit(Lexer* lexer) {
-    buildFinalStates(lexer->finalState);
+    buildFinalStates(lexer->finalState, lexer->finalStateClass);
     buildTransitionMatrix(lexer->transitionMatrix);
     buildProtectedSymbolMatrix(lexer->protectedSymbolMatrix);
+    builProtectedSymbolFinalStates(lexer->protectedSymbolFinalStates);
     lexer->curState = 0;
     lexer->lastWasNumberOrIdent = false;
 }
 
-void fillWord(char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS], const char word[], int firstState, int secondState){
-    
-    protectedSymbolMatrix[firstState][word[0]];
+void fillWord(char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS], const char word[], int firstState, bool hasZero){
+    if(hasZero)
+        protectedSymbolMatrix[0][word[0]] = firstState;
 
-    for(int i = 1; i < strlen(word); i++) {
-        protectedSymbolMatrix[secondState++][word[i]];
-    }
+    for(int i = hasZero; i < strlen(word); i++)
+        protectedSymbolMatrix[firstState][word[i]] = firstState++;
 }
-
 
 void buildProtectedSymbolMatrix( char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS] ){
     
@@ -26,37 +36,22 @@ void buildProtectedSymbolMatrix( char protectedSymbolMatrix[NUMBER_OF_STATES_PRO
     for(char i = 0; i < NUMBER_OF_STATES_PROTECTED_SYMBOLS; i++)
         for(char j = 0; j < NUMBER_OF_LOWER_CASE_LETTERS; j++)
             protectedSymbolMatrix[i][j] = -1;
-
     
-
-    // begin     
-    protectedSymbolMatrix[0]['b'] = 1;
-    protectedSymbolMatrix[1]['e'] = 2;
-    protectedSymbolMatrix[2]['g'] = 3;
-    protectedSymbolMatrix[3]['i'] = 4;
-    protectedSymbolMatrix[4]['n'] = 5; 
-    
-    // const
-    protectedSymbolMatrix[0]['b'] = 1;
-    protectedSymbolMatrix[1]['e'] = 2;
-    protectedSymbolMatrix[2]['g'] = 3;
-    protectedSymbolMatrix[3]['i'] = 4;
-    protectedSymbolMatrix[4]['n'] = 5; 
-    
-    
-    // write
-    protectedSymbolMatrix[0]['w'] = 54;    
-    protectedSymbolMatrix[53]['r'] = 54;    
-    protectedSymbolMatrix[54]['i'] = 55;    
-    protectedSymbolMatrix[55]['t'] = 56;    
-    protectedSymbolMatrix[56]['e'] = 57;    
-    
-    // while
-    protectedSymbolMatrix[0]['w'] = 54;    
-    protectedSymbolMatrix[53]['h'] = 58;    
-    protectedSymbolMatrix[58]['i'] = 59;    
-    protectedSymbolMatrix[59]['l'] = 60;    
-    protectedSymbolMatrix[60]['e'] = 61;    
+    fillWord(protectedSymbolMatrix, "begin", 1, true);  
+    fillWord(protectedSymbolMatrix, "const", 6, true);
+    fillWord(protectedSymbolMatrix, "end", 11, true);
+    fillWord(protectedSymbolMatrix, "lse", 11, false);      // else
+    fillWord(protectedSymbolMatrix, "if", 17, true);
+    fillWord(protectedSymbolMatrix, "nteger", 17, false);   // integer
+    fillWord(protectedSymbolMatrix, "for", 25, true);
+    fillWord(protectedSymbolMatrix, "program", 28, true);
+    fillWord(protectedSymbolMatrix, "cedure", 30, false);   // procedure
+    fillWord(protectedSymbolMatrix, "real", 41, true);
+    fillWord(protectedSymbolMatrix, "d", 43, false);        // read
+    fillWord(protectedSymbolMatrix, "then", 46, true);
+    fillWord(protectedSymbolMatrix, "var", 50, true);
+    fillWord(protectedSymbolMatrix, "write", 53, true);
+    fillWord(protectedSymbolMatrix, "hile", 53, false);     // while 
 }
 
 void fillOther(char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS], int startState, int endState) {
@@ -70,15 +65,53 @@ void fillOther(char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS], int sta
  * 
  * @param isFinalState 
  */
-void buildFinalStates( int isFinalState[NUMBER_OF_STATES] ) {
-    const char notFinals[] = {0, 1, 4, 6, 8, 10, 15, 18, 22, 30};
+void buildFinalStates( bool finalState[NUMBER_OF_STATES], char finalStateClass[NUMBER_OF_STATES] ) {
+    static const char notFinals[] = {0, 1, 4, 6, 8, 10, 15, 18, 22, 30};
     // Define everything as final
-    for(int i = 0; i < NUMBER_OF_STATES; i++) 
-        isFinalState[i] = 1;
+    for(int i = 0; i < NUMBER_OF_STATES; i++){
+        finalState[i] = 1;
+        finalStateClass[i] = ERROR;
+    }
 
     // Mark not final states
     for(int i = 0; i < sizeof notFinals; i++)
-        isFinalState[notFinals[i]] = 0;
+        finalState[notFinals[i]] = 0;
+    
+    finalStateClass[2] = -ID;
+    finalStateClass[3] = -ERROR;
+    finalStateClass[5] = -ERROR;
+    finalStateClass[7] = -N_INTEGER;
+    finalStateClass[9] = -ERROR;
+    finalStateClass[11] = -N_REAL;
+    finalStateClass[12] = OP_ADD;
+    finalStateClass[13] = OP_MULT;
+    finalStateClass[14] = RELATION;
+    finalStateClass[16] = ASSIGN;
+    finalStateClass[17] = -DECLARE_TYPE;
+    finalStateClass[19] = RELATION;
+    finalStateClass[20] = RELATION;
+    finalStateClass[21] = -RELATION;
+    finalStateClass[23] = -RELATION;
+    finalStateClass[24] = RELATION;
+    finalStateClass[25] = SEMICOLON;
+    finalStateClass[26] = COLON;
+    finalStateClass[27] = CLOSE_PAR;
+    finalStateClass[28] = OPEN_PAR;
+    finalStateClass[29] = EOF;
+    finalStateClass[31] = ERROR;
+    
+}
+
+void builProtectedSymbolFinalStates( char protectedSymbolFinalState[NUMBER_OF_STATES_PROTECTED_SYMBOLS] ){
+    
+    static const char finals[] = {5, 10, 13, 16, 18, 24, 27, 34, 40, 44, 45, 49, 52, 57, 61};
+    static const char classes[] = {BEGIN, CONST, END, ELSE, IF, INTEGER, FOR, PROGRAM, PROCEDURE, REAL, READ, THEN, VAR, WRITE, WHILE};
+    
+    for(char i = 0; i < NUMBER_OF_STATES_PROTECTED_SYMBOLS; i++)
+        protectedSymbolFinalState[i] = ID;
+    for(char i = 0; i < sizeof protectedSymbolFinalState; i++)
+        protectedSymbolFinalState[finals[i]] = classes[i];
+
 }
 
 /**
@@ -147,12 +180,12 @@ void buildTransitionMatrix( char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CH
     transitionMatrix[0][')'] = 27;
     transitionMatrix[0]['('] = 28;
     transitionMatrix[0]['{'] = 30;
-    transitionMatrix[30]['}'] = 32;
+    transitionMatrix[30]['}'] = 0;
     
     // Vendo de ver EOF  
 }
 
-
+/***************************************** LEXER OPERATION ****************************************/
 
 void nextToken(FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass) {
     lexer->curState = 0;
@@ -162,23 +195,30 @@ void nextToken(FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass) 
         char c;
         
         // EOF
-        if( fscanf(sourceCode, "%c", &c) == EOF &&  lexer->curState == 0 ) {
-            tokenClass = EOF;   // EOF is recognized only from a0
-            break;
+        int fscanfFlag = fscanf(sourceCode, "%c", &c);
+        if( fscanfFlag == EOF && lexer->curState == 0 ) {
+            *tokenClass = EOF;   // EOF is recognized only from a0
+            return;
         }
-        else
-            break;  // recognize current token and retreat
+        else if( fscanfFlag == EOF ) {
+            fseek( sourceCode, 0, SEEK_END ); // retreat
+            *tokenClass = lexer->finalStateClass[ lexer->curState ];
+            return;
+            // *tokenClass = ERROR;
+            // write( buffer, "" );
+            // return;  // recognize current token and retreat
+        }
  
         // Look for next state
         lexer->curState = lexer->transitionMatrix[lexer->curState][c];
 
         // by default +/- is recognized as an operation
         if( !lexer->lastWasNumberOrIdent )  // if last token wasn't a number or an ID...
-            lexer->curState = 4;            //... recognize as signed number
+            lexer->curState = 4;            // ... recognize as signed number
 
         // DEBUG
         if(lexer->curState == -1) {
-            printf("ME AJUDA GILBERTO!!!!!!!!!!!\n");
+            printf("ME AJUDA GILBERTO!!\n");
             break;
         }
 
@@ -186,82 +226,36 @@ void nextToken(FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass) 
         append( buffer, c );
     }
 
-
-    switch(lexer->curState) {
-        case 2:
-            // VERIFICA PALAVRAS RESERVADAS
-            tokenClass = lookUpProtectedSymbol( buffer );
-            fseek( sourceCode, - sizeof(char), SEEK_CUR );
-            break;
-        case 3:
-            tokenClass = ERROR;
-            break;
-        case 5:
-            tokenClass = ERROR;
-            break;
-        case 7:
-            tokenClass = N_INTEGER;
-            break;
-        case 9:
-            tokenClass = ERROR;
-            break;
-        case 11:
-            tokenClass = N_REAL;
-            break;
-        case 12:
-            if(lexer->lastWasNumberOrIdent)
-                tokenClass = OP_ADD;
-            break;
-        case 13:
-            tokenClass = OP_MULT;
-            break;
-        case 14:
-            tokenClass = RELATION;
-            break;
-        case 16:
-            tokenClass = ASSIGN;
-            break;
-        case 17:
-            tokenClass = DECLARE_TYPE;
-            break;
-        case 19:
-            tokenClass = RELATION;
-            break;
-        case 20:
-            tokenClass = RELATION;
-            break;
-        case 21:
-            tokenClass = RELATION;
-            break;
-        case 23:
-            tokenClass = RELATION;
-            break;
-        case 24:
-            tokenClass = RELATION;
-            break;
-        case 25:
-            tokenClass = SEMICOLON;
-            break;
-        case 26:
-            tokenClass = COLON;
-            break;
-        case 27:
-            tokenClass = CLOSE_PAR;
-            break;
-        case 28:
-            tokenClass = OPEN_PAR;
-            break;
-    }    
-
-    // Retreat
-    fseek( sourceCode, - sizeof(char), SEEK_CUR );
+    identifyTokenClass( lexer, buffer, tokenClass );
+    
+   
 }
 
-int lookUpProtectedSymbol( String* buffer ){
+void identifyTokenClass( FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass, bool isEOF ){
 
-    int tokenClass;
+    *tokenClass = lexer->finalStateClass[ lexer->curState ];
+    
+    if( (*tokenClass) < 0  ){
 
-    
-    
-    return tokenClass;
+        if( isEOF )
+            fseek( sourceCode, 0, SEEK_END ); // retreat
+        else
+            fseek( sourceCode, - sizeof(char), SEEK_CUR ); // retreat
+
+        *tokenClass = -1*(*tokenClass);
+    }
+    if( (*tokenClass) == ID )
+        *tokenClass = lookUpProtectedSymbol( buffer );
+
+}
+
+int lookUpProtectedSymbol( String* buffer, Lexer* lexer ) {
+    int state = 0;
+    for(int i = 0; state != -1 && i < buffer->size; i++)
+        state = lexer->protectedSymbolMatrix[state][buffer->str[i]];
+     
+    if( state == -1 )
+        return ID;
+        
+    return lexer->protectedSymbolFinalStates[state];
 }
