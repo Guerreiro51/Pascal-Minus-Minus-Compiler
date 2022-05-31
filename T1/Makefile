@@ -57,4 +57,4 @@ valgrind:
 # "make clean" to remove object files
 .PHONY: clean
 clean:
-	rm -f $(ODIR)/*.o  
+	rm -f $(ODIR)/*.o  $(EXEC)
