@@ -25,6 +25,8 @@ void append(String* s, char c) {
     else {
         s->capacity *= 2; // doubles the capacity
         s->str = (char*)realloc(s->str, s->capacity);
+        s->str[s->size++] = c;
+        s->str[s->size] = '\0';
     }
 }
 
