@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include "../header/parser.h"
 
-#pragma GCC diagnostic ignored "-Wchar-subscripts"
 /**
  * @brief 
  * 

@@ -23,12 +23,6 @@ enum TOKEN_CLASS { N_REAL, N_INTEGER, OP_ADD, OP_MULT, RELATION,
                     CONST, VAR, REAL, INTEGER, PROCEDURE, ELSE, READ, WRITE, IF, THEN, WHILE, FOR,
                     ERROR };
 
-// indexes token class names for user-friendly printing
-char* tokenClassName[] = { "N_REAL", "N_INTEGER", "OP_ADD", "OP_MULT", "RELATION", 
-                    "ASSIGN", "DECLARE_TYPE", "SEMICOLON", "COLON", 
-                    "OPEN_PAR", "CLOSE_PAR", "ID", "PROGRAM", "BEGIN", "END",
-                    "CONST", "VAR", "REAL", "INTEGER", "PROCEDURE", "ELSE", "READ", "WRITE", "IF", "THEN", "WHILE", "FOR" }; 
-
 typedef struct {
 
     bool finalState[NUMBER_OF_STATES];          // marks state as final
@@ -49,10 +43,10 @@ void fillOther( char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS], int st
 void buildFinalStates( bool finalState[NUMBER_OF_STATES], char finalStateClass[NUMBER_OF_STATES] );
 void buildTransitionMatrix( char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS] );
 void nextToken(FILE* sourceCode, Lexer* lexer, String* buffer, int* token_class);
-int lookUpProtectedSymbol( String* buffer );
+int lookUpProtectedSymbol( String* buffer, Lexer* lexer );
 void fillWord(char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS], const char word[], int firstState, bool hasZero);
-void builProtectedSymbolFinalStates( char protectedSymbolFinalState[NUMBER_OF_STATES_PROTECTED_SYMBOLS] );
-void builProtectedSymbolMatrix( char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS] );
+void buildProtectedSymbolFinalStates( char protectedSymbolFinalState[NUMBER_OF_STATES_PROTECTED_SYMBOLS] );
+void buildProtectedSymbolMatrix( char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS] );
 void identifyTokenClass( FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass, bool isEOF );
 
 #endif // LEXER_H

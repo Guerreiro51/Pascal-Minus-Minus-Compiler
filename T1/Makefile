@@ -3,7 +3,7 @@ CC=gcc
 
 DEFS=
 
-CFLAGS= $(DEFS) -g -Wall 
+CFLAGS= $(DEFS) -g -Wall -Wno-char-subscripts
 
 # executable name
 EXEC = compiler

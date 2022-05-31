@@ -1,6 +1,6 @@
 #include "../header/vector.h"
+#include <stdlib.h>
 
-#pragma GCC diagnostic ignored "-Wchar-subscripts"
 void stringInit(String* s) {
     s->size = 0;
     s->capacity = 4;
@@ -28,10 +28,10 @@ void append(String* s, char c) {
     }
 }
 
-void writeToString(String* s, const char cstr[]) {
-    if(s->capacity < sizeof cstr)
-        expand(s, sizeof cstr + 1);
+void writeToString(String* s, const char cstr[], int size) {
+    if(s->capacity < size)
+        expand(s, size + 1);
 
-    for(int i = 0; i < sizeof cstr; i++) 
+    for(int i = 0; i < size; i++) 
         s->str[i] = cstr[i];
 }

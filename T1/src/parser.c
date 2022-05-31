@@ -8,7 +8,13 @@
 #include "../header/parser.h"
 #include "../header/vector.h"
 
-#pragma GCC diagnostic ignored "-Wchar-subscripts"
+// indexes token class names for user-friendly printing
+static char* tokenClassName[] = { "N_REAL", "N_INTEGER", "OP_ADD", "OP_MULT", "RELATION", 
+                    "ASSIGN", "DECLARE_TYPE", "SEMICOLON", "COLON", 
+                    "OPEN_PAR", "CLOSE_PAR", "ID", "PROGRAM", "BEGIN", "END",
+                    "CONST", "VAR", "REAL", "INTEGER", "PROCEDURE", "ELSE", "READ", "WRITE", "IF", "THEN", "WHILE", "FOR" }; 
+
+
 /**
  * @brief Controls the compilation process.
  * 
@@ -18,12 +24,12 @@
 int compile( FILE* sourceCode ){
 
     // initializes a lexical analyser (lexer)
-    Lexer* lexer;
-    lexerInit(lexer);
+    Lexer lexer;
+    lexerInit(&lexer);
     
     // stores the last lexem read by the lexer
-    String* buffer;
-    stringInit( buffer );
+    String buffer;
+    stringInit( &buffer );
     
     int tokenClass = 0;     // last token class identified by the lexer     
     int flag = 0;           // compiler status flag
@@ -31,14 +37,14 @@ int compile( FILE* sourceCode ){
     while( tokenClass != EOF ){ // stops when the lexer has finished reading the source code file
 
         // asks lexer for next token
-        nextToken( sourceCode, lexer, buffer, &tokenClass );
+        nextToken( sourceCode, &lexer, &buffer, &tokenClass );
         
         if( tokenClass == ERROR ){
-            printf( "%s", buffer );
+            printf( "%s", buffer.str );
             flag = -1;              // if an error was found, compilation fails
         }
         else
-            printf( "%s, %s\n", buffer->str, getTokenClassName( tokenClass ) ); // print token pair: <value, class>
+            printf( "%s, %s\n", buffer.str, getTokenClassName( tokenClass ) ); // print token pair: <value, class>
     }
 
     return flag;

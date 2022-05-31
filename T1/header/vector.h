@@ -10,8 +10,6 @@ typedef struct {
 void stringInit(String* s);
 void expand(String* s, unsigned long newCapacity);
 void append(String* s, char c);
-void writeToString(String* s, const char cstr[]);
-
-
+void writeToString(String* s, const char cstr[], int size);
 
 #endif // VECTOR_H

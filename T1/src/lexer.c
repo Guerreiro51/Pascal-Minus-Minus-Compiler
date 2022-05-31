@@ -6,7 +6,6 @@
 #include <string.h>
 #include "../header/lexer.h"
 
-#pragma GCC diagnostic ignored "-Wchar-subscripts"
 /************************************** LEXER INITIALIZATION **************************************/
 
 /**
@@ -14,10 +13,11 @@
  * @param lexer 
  */
 void lexerInit(Lexer* lexer) {
+
     buildFinalStates(lexer->finalState, lexer->finalStateClass);
     buildTransitionMatrix(lexer->transitionMatrix);
     buildProtectedSymbolMatrix(lexer->protectedSymbolMatrix);
-    builProtectedSymbolFinalStates(lexer->protectedSymbolFinalStates);
+    buildProtectedSymbolFinalStates(lexer->protectedSymbolFinalStates);
     lexer->curState = 0;
     lexer->lastWasNumberOrIdent = false;
 }
@@ -26,8 +26,8 @@ void fillWord(char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUM
     if(hasZero)
         protectedSymbolMatrix[0][word[0]] = firstState;
 
-    for(int i = hasZero; i < strlen(word); i++)
-        protectedSymbolMatrix[firstState][word[i]] = firstState++;
+    for(int i = hasZero; i < strlen(word); i++, firstState++)
+        protectedSymbolMatrix[firstState][word[i]] = firstState;
 }
 
 void buildProtectedSymbolMatrix( char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS] ){
@@ -102,14 +102,14 @@ void buildFinalStates( bool finalState[NUMBER_OF_STATES], char finalStateClass[N
     
 }
 
-void builProtectedSymbolFinalStates( char protectedSymbolFinalState[NUMBER_OF_STATES_PROTECTED_SYMBOLS] ){
+void buildProtectedSymbolFinalStates( char protectedSymbolFinalState[NUMBER_OF_STATES_PROTECTED_SYMBOLS] ){
     
     static const char finals[] = {5, 10, 13, 16, 18, 24, 27, 34, 40, 44, 45, 49, 52, 57, 61};
     static const char classes[] = {BEGIN, CONST, END, ELSE, IF, INTEGER, FOR, PROGRAM, PROCEDURE, REAL, READ, THEN, VAR, WRITE, WHILE};
     
     for(char i = 0; i < NUMBER_OF_STATES_PROTECTED_SYMBOLS; i++)
         protectedSymbolFinalState[i] = ID;
-    for(char i = 0; i < sizeof protectedSymbolFinalState; i++)
+    for(char i = 0; i < sizeof finals; i++)
         protectedSymbolFinalState[finals[i]] = classes[i];
 
 }
@@ -201,8 +201,7 @@ void nextToken(FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass) 
             return;
         }
         else if( fscanfFlag == EOF ) {
-            fseek( sourceCode, 0, SEEK_END ); // retreat
-            *tokenClass = lexer->finalStateClass[ lexer->curState ];
+            identifyTokenClass( sourceCode, lexer, buffer, tokenClass, true );
             return;
             // *tokenClass = ERROR;
             // write( buffer, "" );
@@ -226,7 +225,7 @@ void nextToken(FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass) 
         append( buffer, c );
     }
 
-    identifyTokenClass( lexer, buffer, tokenClass );
+    identifyTokenClass( sourceCode, lexer, buffer, tokenClass, false );
     
    
 }
@@ -245,7 +244,7 @@ void identifyTokenClass( FILE* sourceCode, Lexer* lexer, String* buffer, int* to
         *tokenClass = -1*(*tokenClass);
     }
     if( (*tokenClass) == ID )
-        *tokenClass = lookUpProtectedSymbol( buffer );
+        *tokenClass = lookUpProtectedSymbol( buffer, lexer );
 
 }
 
