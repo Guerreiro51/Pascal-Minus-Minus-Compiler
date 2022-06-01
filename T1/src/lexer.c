@@ -22,39 +22,44 @@ void lexerInit(Lexer* lexer) {
     lexer->lastWasNumberOrIdent = false;
 }
 
-void fillWord(char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS], const char word[], int firstState, bool hasZero){
+void fillWord(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS], const char word[], int firstState, int secondState, bool hasZero){
     if(hasZero)
         protectedSymbolMatrix[0][word[0]] = firstState;
 
-    for(int i = hasZero; i < strlen(word); i++, firstState++)
-        protectedSymbolMatrix[firstState][word[i]] = firstState;
+
+    for(int i = hasZero; i < strlen(word); i++, secondState++) {
+        if(i == hasZero)
+            protectedSymbolMatrix[firstState][word[i]] = secondState;
+        else
+            protectedSymbolMatrix[secondState-1][word[i]] = secondState;
+    }
 }
 
-void buildProtectedSymbolMatrix( char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS] ){
+void buildProtectedSymbolMatrix( int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS] ){
     
     // invalid state by default
     for(int i = 0; i < NUMBER_OF_STATES_PROTECTED_SYMBOLS; i++)
         for(int j = 0; j < NUMBER_OF_LOWER_CASE_LETTERS; j++)
             protectedSymbolMatrix[i][j] = -1;
     
-    fillWord(protectedSymbolMatrix, "begin", 1, true);  
-    fillWord(protectedSymbolMatrix, "const", 6, true);
-    fillWord(protectedSymbolMatrix, "end", 11, true);
-    fillWord(protectedSymbolMatrix, "lse", 11, false);      // else
-    fillWord(protectedSymbolMatrix, "if", 17, true);
-    fillWord(protectedSymbolMatrix, "nteger", 17, false);   // integer
-    fillWord(protectedSymbolMatrix, "for", 25, true);
-    fillWord(protectedSymbolMatrix, "program", 28, true);
-    fillWord(protectedSymbolMatrix, "cedure", 30, false);   // procedure
-    fillWord(protectedSymbolMatrix, "real", 41, true);
-    fillWord(protectedSymbolMatrix, "d", 43, false);        // read
-    fillWord(protectedSymbolMatrix, "then", 46, true);
-    fillWord(protectedSymbolMatrix, "var", 50, true);
-    fillWord(protectedSymbolMatrix, "write", 53, true);
-    fillWord(protectedSymbolMatrix, "hile", 53, false);     // while 
+    fillWord(protectedSymbolMatrix, "begin", 1, 2, true);  
+    fillWord(protectedSymbolMatrix, "const", 6, 7, true);
+    fillWord(protectedSymbolMatrix, "end", 11, 12, true);
+    fillWord(protectedSymbolMatrix, "lse", 11, 14, false);      // else
+    fillWord(protectedSymbolMatrix, "if", 17, 18, true);
+    fillWord(protectedSymbolMatrix, "nteger", 17, 19, false);   // integer
+    fillWord(protectedSymbolMatrix, "for", 25, 26, true);
+    fillWord(protectedSymbolMatrix, "program", 28, 29, true);
+    fillWord(protectedSymbolMatrix, "cedure", 30, 35, false);   // procedure
+    fillWord(protectedSymbolMatrix, "real", 41, 42, true);
+    fillWord(protectedSymbolMatrix, "d", 43, 45, false);        // read
+    fillWord(protectedSymbolMatrix, "then", 46, 47, true);
+    fillWord(protectedSymbolMatrix, "var", 50, 51, true);
+    fillWord(protectedSymbolMatrix, "write", 53, 54, true);
+    fillWord(protectedSymbolMatrix, "hile", 53, 58, false);     // while 
 }
 
-void fillOther(char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS], int startState, int endState) {
+void fillOther(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS], int startState, int endState) {
     for(int i = 0; i < NUMBER_OF_CHARS; i++)
         if(transitionMatrix[startState][i] == -1)
             transitionMatrix[startState][i] = endState;
@@ -121,7 +126,7 @@ void buildProtectedSymbolFinalStates( char protectedSymbolFinalState[NUMBER_OF_S
  * 'i' and reads the character of ASCII number 'j'. 
  * If transionMatrix[i][j] == -1, we have an invalid transition.
 **/
-void buildTransitionMatrix( char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS] ) {
+void buildTransitionMatrix( int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS] ) {
     // invalid state by default
     for(int i = 0; i < NUMBER_OF_STATES; i++)
         for(int j = 0; j < NUMBER_OF_CHARS; j++)
@@ -129,6 +134,7 @@ void buildTransitionMatrix( char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CH
     
     // IDENTIFIERS 
     fillOther(transitionMatrix, 0, 3);
+    fillOther(transitionMatrix, 1, 2);
     transitionMatrix[0]['_'] = 1;
     transitionMatrix[1]['_'] = 1;
     for(int i = 'a'; i <= 'z'; i++) {
@@ -156,6 +162,7 @@ void buildTransitionMatrix( char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CH
     fillOther(transitionMatrix, 4, 5);  // error signal without number
     fillOther(transitionMatrix, 6, 7);  // end of an int
     fillOther(transitionMatrix, 8, 9);  // end of a decimal number
+    fillOther(transitionMatrix, 10, 11);  // end of a decimal number
 
     // OPERANDS
     transitionMatrix[0]['+'] = 12;
@@ -165,14 +172,14 @@ void buildTransitionMatrix( char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CH
     transitionMatrix[0]['='] = 14;
     transitionMatrix[0][':'] = 15;
     transitionMatrix[15]['='] = 16;
-    fillOther( transitionMatrix, 15, 17 );
     transitionMatrix[0]['<'] = 18;
     transitionMatrix[18]['='] = 19;
     transitionMatrix[18]['>'] = 20;
-    fillOther( transitionMatrix, 18, 21 ); 
     transitionMatrix[0]['>'] = 22;
     transitionMatrix[22]['='] = 24;
-    fillOther( transitionMatrix, 22, 23 ); 
+    fillOther( transitionMatrix, 15, 17 );
+    fillOther( transitionMatrix, 18, 21 ); 
+    fillOther( transitionMatrix, 22, 23 );
 
     // MISCELLANEOUS
     transitionMatrix[0][';'] = 25;
@@ -180,6 +187,9 @@ void buildTransitionMatrix( char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CH
     transitionMatrix[0][')'] = 27;
     transitionMatrix[0]['('] = 28;
     transitionMatrix[0]['{'] = 30;
+    transitionMatrix[0][' '] = 0;
+    transitionMatrix[0]['\t'] = 0;
+    transitionMatrix[0]['\n'] = 0;
     transitionMatrix[30]['}'] = 0;
     
     // Vendo de ver EOF  
@@ -190,6 +200,10 @@ void buildTransitionMatrix( char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CH
 void nextToken(FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass) {
     lexer->curState = 0;
     
+    // Cleaning the buffer
+    buffer->size = 0;
+    buffer->str[0] = '\0';
+
     while( !lexer->finalState[lexer->curState] ) {
         // Read character
         char c;
@@ -207,27 +221,30 @@ void nextToken(FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass) 
             // write( buffer, "" );
             // return;  // recognize current token and retreat
         }
- 
+
         // Look for next state
         lexer->curState = lexer->transitionMatrix[lexer->curState][c];
 
+        /*
         // by default +/- is recognized as an operation
         if( !lexer->lastWasNumberOrIdent )  // if last token wasn't a number or an ID...
             lexer->curState = 4;            // ... recognize as signed number
-
+        */
+       
         // DEBUG
         if(lexer->curState == -1) {
             printf("ME AJUDA GILBERTO!!\n");
             break;
         }
 
-        // Append to buffer
-        append( buffer, c );
+        // Not have to retreat and different from zero
+        if(lexer->finalStateClass[lexer->curState] > 0 && lexer->curState) {
+            // Append to buffer
+            append( buffer, c );
+        }
     }
 
-    identifyTokenClass( sourceCode, lexer, buffer, tokenClass, false );
-    
-   
+    identifyTokenClass( sourceCode, lexer, buffer, tokenClass, false );  
 }
 
 void identifyTokenClass( FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass, bool isEOF ){
@@ -239,7 +256,7 @@ void identifyTokenClass( FILE* sourceCode, Lexer* lexer, String* buffer, int* to
         if( isEOF )
             fseek( sourceCode, 0, SEEK_END ); // retreat
         else
-            fseek( sourceCode, - sizeof(char), SEEK_CUR ); // retreat
+            fseek( sourceCode, -sizeof(char), SEEK_CUR ); // retreat
 
         *tokenClass = -1*(*tokenClass);
     }

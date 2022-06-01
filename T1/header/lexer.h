@@ -29,24 +29,24 @@ typedef struct {
     char finalStateClass[NUMBER_OF_STATES];     // associates final state with token class
     char protectedSymbolFinalStates[NUMBER_OF_STATES_PROTECTED_SYMBOLS];
 
-    char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS];
-    char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS];
+    int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS];
+    int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS];
 
-    char curState;
+    int curState;
     bool lastWasNumberOrIdent;
 } Lexer;
 
 void lexerInit(Lexer* lexer);
 bool isNumber(char n);
 bool isLetter(char c);
-void fillOther( char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS], int startState, int endState);
+void fillOther( int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS], int startState, int endState);
 void buildFinalStates( bool finalState[NUMBER_OF_STATES], char finalStateClass[NUMBER_OF_STATES] );
-void buildTransitionMatrix( char transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS] );
+void buildTransitionMatrix( int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS] );
 void nextToken(FILE* sourceCode, Lexer* lexer, String* buffer, int* token_class);
 int lookUpProtectedSymbol( String* buffer, Lexer* lexer );
-void fillWord(char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS], const char word[], int firstState, bool hasZero);
+void fillWord(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS], const char word[], int firstState, int secondState, bool hasZero);
 void buildProtectedSymbolFinalStates( char protectedSymbolFinalState[NUMBER_OF_STATES_PROTECTED_SYMBOLS] );
-void buildProtectedSymbolMatrix( char protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS] );
+void buildProtectedSymbolMatrix( int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS] );
 void identifyTokenClass( FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass, bool isEOF );
 
 #endif // LEXER_H
