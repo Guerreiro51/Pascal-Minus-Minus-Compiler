@@ -1,0 +1,11 @@
+# Ignore everything that isn't c code
+*
+!*/
+!*.c
+!*.h
+
+!.vscode/
+!.gitignore
+!README.md
+!LICENSE
+!makefile
