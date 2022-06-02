@@ -4,6 +4,7 @@
  */
 #include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 #include "../header/lexer.h"
 
 /************************************** LEXER INITIALIZATION **************************************/
@@ -18,20 +19,17 @@ void lexerInit(Lexer* lexer) {
     buildTransitionMatrix(lexer->transitionMatrix);
     buildProtectedSymbolMatrix(lexer->protectedSymbolMatrix);
     buildProtectedSymbolFinalStates(lexer->protectedSymbolFinalStates);
-    lexer->curState = 0;
+    lexer->currState = 0;
+    lexer->currLine = 1;
+    lexer->currCol = 1;
     lexer->lastWasNumberOrIdent = false;
 }
 
-void fillWord(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS], const char word[], int firstState, int secondState, bool hasZero){
-    if(hasZero)
-        protectedSymbolMatrix[0][word[0]] = firstState;
+void fillWord(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS], const char word[], int firstState, int secondState) {
+    protectedSymbolMatrix[firstState][word[0] - 'a'] = secondState;
 
-
-    for(int i = hasZero; i < strlen(word); i++, secondState++) {
-        if(i == hasZero)
-            protectedSymbolMatrix[firstState][word[i]] = secondState;
-        else
-            protectedSymbolMatrix[secondState-1][word[i]] = secondState;
+    for(int i = 1; i < strlen(word); i++, secondState++) {
+        protectedSymbolMatrix[secondState][word[i] - 'a'] = secondState + 1;
     }
 }
 
@@ -42,21 +40,22 @@ void buildProtectedSymbolMatrix( int protectedSymbolMatrix[NUMBER_OF_STATES_PROT
         for(int j = 0; j < NUMBER_OF_LOWER_CASE_LETTERS; j++)
             protectedSymbolMatrix[i][j] = -1;
     
-    fillWord(protectedSymbolMatrix, "begin", 1, 2, true);  
-    fillWord(protectedSymbolMatrix, "const", 6, 7, true);
-    fillWord(protectedSymbolMatrix, "end", 11, 12, true);
-    fillWord(protectedSymbolMatrix, "lse", 11, 14, false);      // else
-    fillWord(protectedSymbolMatrix, "if", 17, 18, true);
-    fillWord(protectedSymbolMatrix, "nteger", 17, 19, false);   // integer
-    fillWord(protectedSymbolMatrix, "for", 25, 26, true);
-    fillWord(protectedSymbolMatrix, "program", 28, 29, true);
-    fillWord(protectedSymbolMatrix, "cedure", 30, 35, false);   // procedure
-    fillWord(protectedSymbolMatrix, "real", 41, 42, true);
-    fillWord(protectedSymbolMatrix, "d", 43, 45, false);        // read
-    fillWord(protectedSymbolMatrix, "then", 46, 47, true);
-    fillWord(protectedSymbolMatrix, "var", 50, 51, true);
-    fillWord(protectedSymbolMatrix, "write", 53, 54, true);
-    fillWord(protectedSymbolMatrix, "hile", 53, 58, false);     // while 
+    fillWord(protectedSymbolMatrix, "begin", 0, 1);  
+    fillWord(protectedSymbolMatrix, "const", 0, 6);
+    fillWord(protectedSymbolMatrix, "do", 0, 11);
+    fillWord(protectedSymbolMatrix, "end", 0, 13);
+    fillWord(protectedSymbolMatrix, "lse", 13, 16);      // else
+    fillWord(protectedSymbolMatrix, "if", 0, 19);
+    fillWord(protectedSymbolMatrix, "nteger", 19, 21);   // integer
+    fillWord(protectedSymbolMatrix, "for", 0, 27);
+    fillWord(protectedSymbolMatrix, "program", 0, 30);
+    fillWord(protectedSymbolMatrix, "cedure", 32, 37);   // procedure
+    fillWord(protectedSymbolMatrix, "real", 0, 43);
+    fillWord(protectedSymbolMatrix, "d", 45, 47);        // read
+    fillWord(protectedSymbolMatrix, "then", 0, 48);
+    fillWord(protectedSymbolMatrix, "var", 0, 52);
+    fillWord(protectedSymbolMatrix, "write", 0, 55);
+    fillWord(protectedSymbolMatrix, "hile", 55, 60);     // while 
 }
 
 void fillOther(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS], int startState, int endState) {
@@ -83,7 +82,7 @@ void buildFinalStates( bool finalState[NUMBER_OF_STATES], char finalStateClass[N
         finalState[notFinals[i]] = 0;
     
     finalStateClass[2] = -ID;
-    finalStateClass[3] = -ERROR;
+    finalStateClass[3] = ERROR;
     finalStateClass[5] = -ERROR;
     finalStateClass[7] = -N_INTEGER;
     finalStateClass[9] = -ERROR;
@@ -109,8 +108,8 @@ void buildFinalStates( bool finalState[NUMBER_OF_STATES], char finalStateClass[N
 
 void buildProtectedSymbolFinalStates( char protectedSymbolFinalState[NUMBER_OF_STATES_PROTECTED_SYMBOLS] ){
     
-    static const char finals[] = {5, 10, 13, 16, 18, 24, 27, 34, 40, 44, 45, 49, 52, 57, 61};
-    static const char classes[] = {BEGIN, CONST, END, ELSE, IF, INTEGER, FOR, PROGRAM, PROCEDURE, REAL, READ, THEN, VAR, WRITE, WHILE};
+    static const char finals[] = {5, 10, 12, 15, 18, 20, 26, 29, 36, 42, 46, 47, 51, 54, 59, 63};
+    static const char classes[] = {BEGIN, CONST, DO, END, ELSE, IF, INTEGER, FOR, PROGRAM, PROCEDURE, REAL, READ, THEN, VAR, WRITE, WHILE};
     
     for(int i = 0; i < NUMBER_OF_STATES_PROTECTED_SYMBOLS; i++)
         protectedSymbolFinalState[i] = ID;
@@ -198,23 +197,26 @@ void buildTransitionMatrix( int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHA
 /***************************************** LEXER OPERATION ****************************************/
 
 void nextToken(FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass) {
-    lexer->curState = 0;
+    lexer->currState = 0;
     
     // Cleaning the buffer
     buffer->size = 0;
     buffer->str[0] = '\0';
 
-    while( !lexer->finalState[lexer->curState] ) {
+    while( !lexer->finalState[lexer->currState] ) {
         // Read character
         char c;
         
         // EOF
         int fscanfFlag = fscanf(sourceCode, "%c", &c);
-        if( fscanfFlag == EOF && lexer->curState == 0 ) {
+        lexer->currLine += (c == '\n');
+        lexer->currCol = (c == '\n') ? 1 : lexer->currCol + 1;
+        if( fscanfFlag == EOF && lexer->currState == 0 ) {
             *tokenClass = EOF;   // EOF is recognized only from a0
             return;
         }
         else if( fscanfFlag == EOF ) {
+            lexer->currState = lexer->transitionMatrix[lexer->currState]['@']; // hacky fix since EOF is just another char
             identifyTokenClass( sourceCode, lexer, buffer, tokenClass, true );
             return;
             // *tokenClass = ERROR;
@@ -223,33 +225,35 @@ void nextToken(FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass) 
         }
 
         // Look for next state
-        lexer->curState = lexer->transitionMatrix[lexer->curState][c];
+        lexer->currState = lexer->transitionMatrix[lexer->currState][c];
 
-        /*
+        
         // by default +/- is recognized as an operation
-        if( !lexer->lastWasNumberOrIdent )  // if last token wasn't a number or an ID...
-            lexer->curState = 4;            // ... recognize as signed number
-        */
+        // but if the previous token was a number or id, it should be considered as a sign
+        if(lexer->currState == 12 && !lexer->lastWasNumberOrIdent)
+            lexer->currState = 4;
+        
        
         // DEBUG
-        if(lexer->curState == -1) {
+        if(lexer->currState == -1) {
             printf("ME AJUDA GILBERTO!!\n");
             break;
         }
 
         // Not have to retreat and different from zero
-        if(lexer->finalStateClass[lexer->curState] > 0 && lexer->curState) {
+        if((lexer->finalStateClass[lexer->currState] > 0 && lexer->currState) || lexer->finalStateClass[lexer->currState] == -ERROR) {
             // Append to buffer
             append( buffer, c );
         }
     }
 
-    identifyTokenClass( sourceCode, lexer, buffer, tokenClass, false );  
+    identifyTokenClass( sourceCode, lexer, buffer, tokenClass, false );
+    lexer->lastWasNumberOrIdent = (*tokenClass == ID || *tokenClass == N_INTEGER || *tokenClass == N_REAL);  
 }
 
 void identifyTokenClass( FILE* sourceCode, Lexer* lexer, String* buffer, int* tokenClass, bool isEOF ){
 
-    *tokenClass = lexer->finalStateClass[ lexer->curState ];
+    *tokenClass = lexer->finalStateClass[ lexer->currState ];
     
     if( (*tokenClass) < 0  ){
 
@@ -267,8 +271,12 @@ void identifyTokenClass( FILE* sourceCode, Lexer* lexer, String* buffer, int* to
 
 int lookUpProtectedSymbol( String* buffer, Lexer* lexer ) {
     int state = 0;
-    for(int i = 0; state != -1 && i < buffer->size; i++)
-        state = lexer->protectedSymbolMatrix[state][buffer->str[i]];
+    for(int i = 0; state != -1 && i < buffer->size; i++) {
+        if(islower(buffer->str[i]))
+            state = lexer->protectedSymbolMatrix[state][buffer->str[i] -'a'];
+        else
+            return ID;
+    }
      
     if( state == -1 )
         return ID;

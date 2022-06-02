@@ -1,7 +1,7 @@
 program p;
 var x@:integer;
 begin
-    x:=1;
+    x:=+a - a + 2.a + 2.03 - 3;
     while(x<3) do
         x:=x+1;
 end

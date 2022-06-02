@@ -11,8 +11,16 @@
 // indexes token class names for user-friendly printing
 static char* tokenClassName[] = { "N_REAL", "N_INTEGER", "OP_ADD", "OP_MULT", "RELATION", 
                     "ASSIGN", "DECLARE_TYPE", "SEMICOLON", "COLON", 
-                    "OPEN_PAR", "CLOSE_PAR", "ID", "PROGRAM", "BEGIN", "END",
-                    "CONST", "VAR", "REAL", "INTEGER", "PROCEDURE", "ELSE", "READ", "WRITE", "IF", "THEN", "WHILE", "FOR" }; 
+                    "OPEN_PAR", "CLOSE_PAR", "ID", "BEGIN", "CONST",
+                    "DO", "END", "ELSE", "IF", "INTEGER", "FOR", "PROGRAM", "PROCEDURE",
+                    "REAL", "READ", "THEN", "VAR", "WRITE", "WHILE", "ERROR" };
+
+static char* errorMessages[NUMBER_OF_STATES] = {"", "", "",
+                    "Error: Invalid Identifier", "",
+                    "Error: expected a number but found a character", "", "", "",
+                    "Error: did you mean to type a real number?", "", "", "", "",
+                    "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+                    "Error: Unexpected end of file"};
 
 
 /**
@@ -40,9 +48,11 @@ int compile( FILE* sourceCode ){
         nextToken( sourceCode, &lexer, &buffer, &tokenClass );
         
         if( tokenClass == ERROR ){
-            printf( "%s", buffer.str );
+            printf("Line %d Col %d -- '%s'\n%s\n", lexer.currLine, lexer.currCol, buffer.str, errorMessages[lexer.currState]);
             flag = -1;              // if an error was found, compilation fails
         }
+        else if(tokenClass == EOF)
+            printf("EOF\n");
         else
             printf( "%s, %s\n", buffer.str, getTokenClassName( tokenClass ) ); // print token pair: <value, class>
     }
