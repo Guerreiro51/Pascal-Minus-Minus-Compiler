@@ -33,7 +33,8 @@ CompileRet compile(FILE* sourceCode) {
         nextToken(&lexer, &buffer, sourceCode, &tokenClass);
 
         if (tokenClass == ERROR) {
-            printf("Line %d Col %d -- '%s'\n%s\n", lexer.currLine, lexer.currCol, buffer.str, _getLexerErrorMessage(lexer.currState));
+            // Col count is incremented, just for showing purposes, in case there was a retreat
+            printf("Line %d Col %d -- '%s'\n%s\n", lexer.currLine, lexer.currCol + (lexer.finalStateClass[lexer.currState] < 0), buffer.str, _getLexerErrorMessage(lexer.currState));
             compileRet.errorCount++;
         } else if (tokenClass == EOF)
             printf("EOF\n");

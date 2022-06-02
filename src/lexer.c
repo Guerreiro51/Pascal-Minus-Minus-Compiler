@@ -40,17 +40,12 @@ void nextToken(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) 
 
         _nextState(lexer);
 
-        // DEBUG
-        if (lexer->currState == -1) {
-            printf("ME AJUDA GILBERTO!!\n");
-            break;
-        }
-
         // Only append to the buffer if:
         // - Is an error (to show to the user)
-        // - We're a not at the initial state (to avoid '\n' '\t' and such) and we won't retreat (to avoid showing twice)
+        // - We're a not at the initial state or at a comment (state 30) (to avoid '\n' '\t' and such)
+        // and we won't retreat (to avoid showing twice)
         if (lexer->finalStateClass[lexer->currState] == -ERROR ||
-            (lexer->currState != 0 && lexer->finalStateClass[lexer->currState] >= 0 && lexer->currState != 30)) {
+            (lexer->currState != 0 && lexer->currState != 30 && lexer->finalStateClass[lexer->currState] >= 0 )) {
             append(buffer, lexer->currChar);
         }
     }
@@ -97,6 +92,9 @@ void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHA
         transitionMatrix[8][i] = 10;   // first number after decimal place
         transitionMatrix[10][i] = 10;  // following number after decimal place
     }
+    transitionMatrix[4][' '] = 4;
+    transitionMatrix[4]['\t'] = 4;
+    transitionMatrix[4]['\n'] = 4;
     _fillOther(transitionMatrix, 4, 5);    // error signal without number
     _fillOther(transitionMatrix, 6, 7);    // end of an int
     _fillOther(transitionMatrix, 8, 9);    // end of a decimal number
@@ -205,8 +203,10 @@ void _fillWord(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUM
 
 void _nextChar(Lexer* lexer, FILE* sourceCode) {
     lexer->fscanfFlag = fscanf(sourceCode, "%c", &lexer->currChar);
-    lexer->currLine += (lexer->currChar == '\n');
-    lexer->currCol = (lexer->currChar == '\n') ? 1 : lexer->currCol + 1;
+    if(lexer->fscanfFlag != -1) {
+        lexer->currLine += (lexer->currChar == '\n');
+        lexer->currCol = (lexer->currChar == '\n') ? 1 : lexer->currCol + 1;
+    }
 }
 
 /**
@@ -221,7 +221,7 @@ void _dealWithEOF(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClas
     }
     else if(lexer->currState == 30) {
         lexer->currState = 31;
-        *tokenClass = ERROR;
+        *tokenClass = lexer->finalStateClass[lexer->currState];
     }
     else {
         // hacky fix since we're treating EOF as just another char
@@ -249,7 +249,10 @@ void _identifyTokenClass(Lexer* lexer, String* buffer, FILE* sourceCode, int* to
     *tokenClass = lexer->finalStateClass[lexer->currState];
 
     if ((*tokenClass) < 0) {
-        fseek(sourceCode, -sizeof(char), SEEK_CUR);  // retreat
+        // retreat the file and the count
+        fseek(sourceCode, -sizeof(char), SEEK_CUR);
+        lexer->currLine -= (lexer->currChar == '\n');
+        lexer->currCol -= (lexer->currChar != '\n');
         *tokenClass = -1 * (*tokenClass);
     }
     if ((*tokenClass) == ID)
