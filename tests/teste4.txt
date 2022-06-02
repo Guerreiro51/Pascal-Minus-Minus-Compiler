@@ -1,0 +1,8 @@
+program p;
+var x@:integer;
+begin
+    x:=+a - a + 2.a + 2.03 - 3;
+    while(x<3) do
+        x:=x+1;
+    {isto eh um comentario
+end

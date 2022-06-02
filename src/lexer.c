@@ -50,7 +50,7 @@ void nextToken(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) 
         // - Is an error (to show to the user)
         // - We're a not at the initial state (to avoid '\n' '\t' and such) and we won't retreat (to avoid showing twice)
         if (lexer->finalStateClass[lexer->currState] == -ERROR ||
-            (lexer->currState != 0 && lexer->finalStateClass[lexer->currState] >= 0)) {
+            (lexer->currState != 0 && lexer->finalStateClass[lexer->currState] >= 0 && lexer->currState != 30)) {
             append(buffer, lexer->currChar);
         }
     }
@@ -129,6 +129,7 @@ void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHA
     transitionMatrix[0]['\t'] = 0;
     transitionMatrix[0]['\n'] = 0;
     transitionMatrix[30]['}'] = 0;
+    _fillOther(transitionMatrix, 30, 30);
 }
 
 /**
@@ -217,7 +218,12 @@ void _nextChar(Lexer* lexer, FILE* sourceCode) {
 void _dealWithEOF(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) {
     if (lexer->currState == 0) {
         *tokenClass = EOF;  // EOF is recognized only from a0
-    } else {
+    }
+    else if(lexer->currState == 30) {
+        lexer->currState = 31;
+        *tokenClass = ERROR;
+    }
+    else {
         // hacky fix since we're treating EOF as just another char
         lexer->currState = lexer->transitionMatrix[lexer->currState]['@'];
 
