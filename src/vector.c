@@ -8,6 +8,9 @@ void stringInit(String* s) {
     s->str = (char*)malloc(s->capacity * sizeof(char));
     s->str[0] = '\0';
 }
+void stringDestroy(String* s) {
+    free(s->str);
+}
 
 void expand(String* s, unsigned long newCapacity) {
     char* newBuff = (char*)malloc(newCapacity * sizeof(char));

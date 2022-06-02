@@ -63,10 +63,9 @@ run:
 .PHONY: clean
 
 clean:
-	@ rm -rf ./$(ODIR)/*.o $(PROJ_NAME)
-	@ rmdir $(ODIR)
+	@ rm -rf ./$(ODIR)/*.o ./$(ODIR) $(PROJ_NAME)
 
 .PHONY: valgrind
 valgrind:
 	@ read -e -r -p "Enter the path to the file to compile: " PATH \
-		&& valgrind --leak-check=full ./$(PROJ_NAME) $${PATH};
+		&& /usr/bin/valgrind --leak-check=full ./$(PROJ_NAME) $${PATH};

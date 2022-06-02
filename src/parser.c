@@ -41,6 +41,7 @@ CompileRet compile(FILE* sourceCode) {
             printf("%s, %s\n", buffer.str, _getTokenClassName(tokenClass));  // print token pair: <value, class>
     }
 
+    stringDestroy(&buffer);
     return compileRet;
 }
 

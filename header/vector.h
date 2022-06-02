@@ -8,6 +8,7 @@ typedef struct {
 } String;
 
 void stringInit(String* s);
+void stringDestroy(String* s);
 void append(String* s, char c);
 void writeToString(String* s, const char cstr[], int size);
 void _expand(String* s, unsigned long newCapacity);
