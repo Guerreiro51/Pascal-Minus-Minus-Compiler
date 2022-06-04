@@ -297,7 +297,7 @@ void _nextState(Lexer* lexer) {
     lexer->currState = lexer->transitionMatrix[lexer->currState][lexer->currChar];
 
     // by default +/- is recognized as an operation
-    // but if the previous token was neither a number nor and id, it should be considered as a unary operator
+    // but if the previous token was neither a number nor an id, it should be considered as a unary operator
     if (lexer->currState == OP_ADD_STATE && !lexer->lastWasNumberOrIdent)
         lexer->currState = OP_UN_STATE;
 }
