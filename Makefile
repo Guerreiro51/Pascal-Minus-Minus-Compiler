@@ -32,7 +32,8 @@ CC_FLAGS=-I						\
 		 -std=c17				\
 		 -march=native			\
 		 -O3					\
-		 -Ofast
+		 -Ofast					\
+		 -g
 
 # Libraries
 LIBS=-lm

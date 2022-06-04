@@ -14,7 +14,7 @@
  */
 void lexerInit(Lexer* lexer) {
     lexer->currState = 0;
-    lexer->currLine = 1;
+    lexer->currLine = 1; 
     lexer->currCol = 1;
     lexer->lastWasNumberOrIdent = false;
     _buildTransitionMatrix(lexer->transitionMatrix);
@@ -23,6 +23,14 @@ void lexerInit(Lexer* lexer) {
     _buildProtectedSymbolFinalStates(lexer->protectedSymbolFinalStates);
 }
 
+/**
+ * @brief Gets next token from P-- source code file
+ * 
+ * @param lexer lexer instance
+ * @param buffer used to store lexem
+ * @param sourceCode P-- source code file pointer
+ * @param tokenClass new token class
+ */
 void nextToken(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) {
     // initial state
     lexer->currState = 0;
@@ -30,8 +38,8 @@ void nextToken(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) 
     // Cleaning the buffer
     writeToString(buffer, "", 0);
 
-    while (!lexer->finalState[lexer->currState]) {
-        _nextChar(lexer, sourceCode);
+    while (!lexer->finalState[lexer->currState]) { // while the automaton hasn't reached a file state
+        _nextChar(lexer, sourceCode);   // read char from file
 
         if (lexer->fscanfFlag == EOF) {
             _dealWithEOF(lexer, buffer, sourceCode, tokenClass);
@@ -42,10 +50,10 @@ void nextToken(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) 
 
         // Only append to the buffer if:
         // - Is an error (to show to the user)
-        // - We're a not at the initial state or at a comment (state 30) (to avoid '\n' '\t' and such)
+        // - We're a not at the initial state or at a comment (state 31) (to avoid '\n' '\t' and such)
         // and we won't retreat (to avoid showing twice)
         if (lexer->finalStateClass[lexer->currState] == -ERROR ||
-            (lexer->currState != 0 && lexer->currState != 30 && lexer->finalStateClass[lexer->currState] >= 0 )) {
+            (lexer->currState != 0 && lexer->currState != COMMENT_STATE && lexer->finalStateClass[lexer->currState] >= 0 )) {
             append(buffer, lexer->currChar);
         }
     }
@@ -53,12 +61,14 @@ void nextToken(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) 
 }
 
 /**
- * The transitionMatrix[][] has NUMBER_OF_STATES lines (number of states) and NUMBER_OF_CHARS rows
+ * @brief The transitionMatrix[][] has NUMBER_OF_STATES lines (number of states) and NUMBER_OF_CHARS rows
  * (number of ASCII characters). An element 'transionMatrix[i][j]'
  * represents the new state the automaton must go next when it is in state
  * 'i' and reads the character of ASCII number 'j'.
  * If transionMatrix[i][j] == -1, we have an invalid transition.
- **/
+ * 
+ * @param transitionMatrix 
+ */
 void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS]) {
     // invalid state by default
     for (int i = 0; i < NUMBER_OF_STATES; i++)
@@ -118,27 +128,36 @@ void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHA
     _fillOther(transitionMatrix, 22, 23);
 
     // MISCELLANEOUS
+    transitionMatrix[0][' '] = 0;
+    transitionMatrix[0]['\t'] = 0;
+    transitionMatrix[0]['\n'] = 0;
     transitionMatrix[0][';'] = 25;
     transitionMatrix[0][','] = 26;
     transitionMatrix[0][')'] = 27;
     transitionMatrix[0]['('] = 28;
-    transitionMatrix[0]['{'] = 30;
-    transitionMatrix[0][' '] = 0;
-    transitionMatrix[0]['\t'] = 0;
-    transitionMatrix[0]['\n'] = 0;
-    transitionMatrix[30]['}'] = 0;
-    _fillOther(transitionMatrix, 30, 30);
+    transitionMatrix[0]['.'] = 29;
+    transitionMatrix[0]['{'] = 31;
+    transitionMatrix[31]['}'] = 0;
+    _fillOther(transitionMatrix, 31, 31);
 }
 
 /**
- * @brief Build a vector that identifies final states.
+ * @brief  Build a vector that identifies final states. 
+ * 
+ * @param finalState vector that identifies final states
+ * @param finalStateClass vector that identifies to which token class each final state corresponds
  */
 void _buildFinalStates(bool finalState[NUMBER_OF_STATES], char finalStateClass[NUMBER_OF_STATES]) {
-    static const char notFinals[] = {0, 1, 4, 6, 8, 10, 15, 18, 22, 30};
-    static const char finals[] = {2, 3, 5, 7, 9, 11, 12, 13, 14, 16, 17, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 31};
+    
+    // list of states that aren't final
+    static const char notFinals[] = {0, 1, 4, 6, 8, 10, 15, 18, 22, 31};
+    // list of final states
+    static const char finals[] = {2, 3, 5, 7, 9, 11, 12, 13, 14, 16, 17, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30, 32};
+    // list of token classes corresponding to each final state, negative values indicate that 
+    // we must retreat on the source code file after such final state is reacheded
     static const int stateClasses[] = {-ID, ERROR, -ERROR, -N_INTEGER, -ERROR, -N_REAL, OP_ADD, OP_MULT, RELATION, ASSIGN,
                                        -DECLARE_TYPE, RELATION, RELATION, -RELATION, -RELATION, RELATION, SEMICOLON, COLON,
-                                       CLOSE_PAR, OPEN_PAR, EOF, ERROR};
+                                       CLOSE_PAR, OPEN_PAR, DOT, EOF, ERROR};
 
     // Mark not final states as ERROR by default
     for (unsigned long i = 0; i < sizeof notFinals; i++) {
@@ -153,6 +172,16 @@ void _buildFinalStates(bool finalState[NUMBER_OF_STATES], char finalStateClass[N
     }
 }
 
+/**
+ * @brief Builds protected symbol recognizer automaton transition matrix. 
+ * The protectedSymbolMatrix[][] has NUMBER_OF_STATES_PROTECTED_SYMBOLS lines (number of states) 
+ * and NUMBER_OF_CHARS rows (number of ASCII characters). An element 'protectedSymbolMatrix[i][j]'
+ * represents the new state the automaton must go next when it is in state
+ * 'i' and reads the character of ASCII number 'j'.
+ * If protectedSymbolMatrix[i][j] == -1, we have an invalid transition.
+ * 
+ * @param protectedSymbolMatrix 
+ */
 void _buildProtectedSymbolMatrix(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS]) {
     // invalid state by default
     for (int i = 0; i < NUMBER_OF_STATES_PROTECTED_SYMBOLS; i++)
@@ -172,27 +201,53 @@ void _buildProtectedSymbolMatrix(int protectedSymbolMatrix[NUMBER_OF_STATES_PROT
     _fillWord(protectedSymbolMatrix, "real", 0, 43);
     _fillWord(protectedSymbolMatrix, "d", 45, 47);          // read
     _fillWord(protectedSymbolMatrix, "then", 0, 48);
-    _fillWord(protectedSymbolMatrix, "var", 0, 52);
-    _fillWord(protectedSymbolMatrix, "write", 0, 55);
-    _fillWord(protectedSymbolMatrix, "hile", 55, 60);       // while
+    _fillWord(protectedSymbolMatrix, "o", 48, 52);          // to
+    _fillWord(protectedSymbolMatrix, "var", 0, 53);
+    _fillWord(protectedSymbolMatrix, "write", 0, 56);
+    _fillWord(protectedSymbolMatrix, "hile", 56, 61);       // while
 }
 
+/**
+ * @brief Build a vector that identifies final states regarding protected symbols.
+ * 
+ * @param protectedSymbolFinalState vector that identifies final states' token classes
+ */
 void _buildProtectedSymbolFinalStates(char protectedSymbolFinalState[NUMBER_OF_STATES_PROTECTED_SYMBOLS]) {
-    static const char finals[] = {5, 10, 12, 15, 18, 20, 26, 29, 36, 42, 46, 47, 51, 54, 59, 63};
-    static const char classes[] = {BEGIN, CONST, DO, END, ELSE, IF, INTEGER, FOR, PROGRAM, PROCEDURE, REAL, READ, THEN, VAR, WRITE, WHILE};
+    // list of final states
+    static const char finals[] = {5, 10, 12, 15, 18, 20, 26, 29, 36, 42, 46, 47, 51, 52, 55, 60, 64};
+    // list of token classes (protected symbols) corresponding to final states
+    static const char classes[] = {BEGIN, CONST, DO, END, ELSE, IF, INTEGER, FOR, PROGRAM, PROCEDURE, REAL, READ, THEN, TO, VAR, WRITE, WHILE};
 
+    // invalid states correspond to IDs
     for (int i = 0; i < NUMBER_OF_STATES_PROTECTED_SYMBOLS; i++)
         protectedSymbolFinalState[i] = ID;
+    // mark final states
     for (unsigned long i = 0; i < sizeof finals; i++)
         protectedSymbolFinalState[finals[i]] = classes[i];
 }
 
+/**
+ * @brief Auxiliary function used to fill the transition matrix. Fills in "other" transitions.
+ * 
+ * @param transitionMatrix 
+ * @param startState 
+ * @param endState 
+ */
 void _fillOther(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS], int startState, int endState) {
     for (int i = 0; i < NUMBER_OF_CHARS; i++)
         if (transitionMatrix[startState][i] == -1)
             transitionMatrix[startState][i] = endState;
 }
 
+/**
+ * @brief Auxiliary function used to fill the protected symbol transition matrix. Given a protected symbol, 
+ * fills in the corresponding entries in the matrix.
+ * 
+ * @param protectedSymbolMatrix 
+ * @param word protected symbol
+ * @param firstState state from where recognizition starts
+ * @param secondState second state on word recognition flow 
+ */
 void _fillWord(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS], const char word[], int firstState, int secondState) {
     protectedSymbolMatrix[firstState][word[0] - 'a'] = secondState;
 
@@ -201,6 +256,13 @@ void _fillWord(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUM
     }
 }
 
+/**
+ * @brief Get next char from P-- source code file. Increments current columns
+ * and line appropriately.
+ * 
+ * @param lexer lexer instance
+ * @param sourceCode P-- source code pointer
+ */
 void _nextChar(Lexer* lexer, FILE* sourceCode) {
     lexer->fscanfFlag = fscanf(sourceCode, "%c", &lexer->currChar);
     if(lexer->fscanfFlag != -1) {
@@ -214,13 +276,18 @@ void _nextChar(Lexer* lexer, FILE* sourceCode) {
  * If we read EOF while on the initial state, we say the
  * token was EOF at which point the compilation stops.
  * Otherwise, if EOF is found in another state, we treat it as a random char
+ * 
+ * @param lexer lexer instance
+ * @param buffer lexem read by the lexer
+ * @param sourceCode P-- source code file pointer
+ * @param tokenClass token class identified by the lexer
  */
 void _dealWithEOF(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) {
     if (lexer->currState == 0) {
         *tokenClass = EOF;  // EOF is recognized only from a0
     }
-    else if(lexer->currState == 30) {
-        lexer->currState = 31;
+    else if(lexer->currState == 31) {
+        lexer->currState = 32;
         *tokenClass = lexer->finalStateClass[lexer->currState];
     }
     else {

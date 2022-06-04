@@ -4,7 +4,7 @@
 #include "../header/parser.h"
 
 /**
- * @brief
+ * @brief P-- compiler
  *
  * @param argc number of command line arguments (expects 2 arguments)
  * @param argv commmand line arguments ( expects {executable name, source code file name} )

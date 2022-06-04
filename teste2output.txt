@@ -1,0 +1,44 @@
+program, PROGRAM
+p, ID
+;, SEMICOLON
+var, VAR
+x, ID
+Line 2 Col 7 -- '@'
+Error: Invalid Identifier
+:, DECLARE_TYPE
+integer, INTEGER
+;, SEMICOLON
+begin, BEGIN
+x, ID
+:=, ASSIGN
+Line 4 Col 10 -- '+a'
+Error: expected a number but found a character
+a, ID
+-, OP_ADD
+a, ID
++, OP_ADD
+Line 4 Col 20 -- '2.a'
+Error: did you mean to type a real number?
+a, ID
++, OP_ADD
+2.03 , N_REAL
+-, OP_ADD
+3, N_INTEGER
+-, OP_ADD
+- 3, N_INTEGER
+;, SEMICOLON
+while, WHILE
+(, OPEN_PAR
+x, ID
+<, RELATION
+3, N_INTEGER
+), CLOSE_PAR
+do, DO
+x, ID
+:=, ASSIGN
+x, ID
++, OP_ADD
+1, N_INTEGER
+;, SEMICOLON
+end, END
+EOF

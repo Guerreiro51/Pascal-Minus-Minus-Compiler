@@ -30,7 +30,8 @@ CompileRet compile(FILE* sourceCode) {
     compileRet.errorCount = 0;
 
     while (tokenClass != EOF) {  // stops when the lexer has finished reading the source code file
-        nextToken(&lexer, &buffer, sourceCode, &tokenClass);
+        
+        nextToken(&lexer, &buffer, sourceCode, &tokenClass); // get next token
 
         if (tokenClass == ERROR) {
             // Col count is incremented, just for showing purposes, in case there was a retreat
@@ -56,18 +57,24 @@ char* _getTokenClassName(int tokenClass) {
     // indexes token class names for user-friendly printing
     static char* tokenClassName[] = {"N_REAL", "N_INTEGER", "OP_ADD", "OP_MULT", "RELATION",
                                      "ASSIGN", "DECLARE_TYPE", "SEMICOLON", "COLON",
-                                     "OPEN_PAR", "CLOSE_PAR", "ID", "BEGIN", "CONST",
+                                     "OPEN_PAR", "CLOSE_PAR", "DOT", "ID", "BEGIN", "CONST",
                                      "DO", "END", "ELSE", "IF", "INTEGER", "FOR", "PROGRAM", "PROCEDURE",
-                                     "REAL", "READ", "THEN", "VAR", "WRITE", "WHILE", "ERROR"};
+                                     "REAL", "READ", "THEN", "TO", "VAR", "WRITE", "WHILE", "ERROR"};
     return tokenClassName[tokenClass];
 }
 
+/**
+ * @brief Returns error description given current automaton state.
+ * 
+ * @param currState current automaton state
+ * @return char* error description
+ */
 char* _getLexerErrorMessage(int currState) {
     static char* lexerErrorMessages[NUMBER_OF_STATES] = {"", "", "",
                                                          "Error: Invalid Identifier", "",
                                                          "Error: expected a number but found a character", "", "", "",
                                                          "Error: did you mean to type a real number?", "", "", "", "",
-                                                         "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+                                                         "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
                                                          "Error: Unexpected end of file"};
     return lexerErrorMessages[currState];
 }
