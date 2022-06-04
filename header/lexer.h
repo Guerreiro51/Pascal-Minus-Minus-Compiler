@@ -1,6 +1,6 @@
 /**
  * @file lexer.h
- * @brief  Lexical analyser (lexer)
+ * @brief Lexical analyser (lexer)
  */
 #ifndef LEXER_H
 #define LEXER_H
@@ -11,16 +11,17 @@
 
 #include "../header/vector.h"
 
-#define NUMBER_OF_STATES 33  // number of states of the lexic analyser automaton
-#define NUMBER_OF_CHARS 128  // number of ASCII characters
-
+#define NUMBER_OF_STATES 32                    // number of states of the lexic analyser automaton
 #define NUMBER_OF_STATES_PROTECTED_SYMBOLS 65  // number of states of the protected symbol detection automaton
+#define NUMBER_OF_CHARS 128                    // number of ASCII characters
 #define NUMBER_OF_LOWER_CASE_LETTERS 26        // number of lower case letters (inputs of the protected symbol detection automaton)
 
-#define COMMENT_STATE 31  // state of the automaton when reading a comment
+#define COMMENT_STATE 30  // state of the automaton when reading a comment
+#define OP_ADD_STATE 10
+#define OP_UN_STATE 23
 
 // existing token classes
-enum TOKEN_CLASS {  N_REAL, N_INTEGER, OP_ADD, OP_MULT, RELATION, 
+enum TOKEN_CLASS {  N_REAL = 1, N_INTEGER, OP_UN, OP_ADD, OP_MULT, RELATION, 
                     ASSIGN, DECLARE_TYPE, SEMICOLON, COLON, 
                     OPEN_PAR, CLOSE_PAR, DOT, ID, BEGIN, CONST, 
                     DO, END, ELSE, IF, INTEGER, FOR, PROGRAM, PROCEDURE,

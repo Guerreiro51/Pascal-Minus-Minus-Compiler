@@ -92,53 +92,46 @@ void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHA
         transitionMatrix[1][i] = 1;
 
     // NUMBERS
-    transitionMatrix[0]['+'] = 4;
-    transitionMatrix[0]['-'] = 4;
-    transitionMatrix[6]['.'] = 8;
     for (int i = '0'; i <= '9'; i++) {
-        transitionMatrix[0][i] = 6;    // integer part, first number
-        transitionMatrix[4][i] = 6;    // integer part, first number after signal
-        transitionMatrix[6][i] = 6;    // integer part, following numbers
-        transitionMatrix[8][i] = 10;   // first number after decimal place
-        transitionMatrix[10][i] = 10;  // following number after decimal place
+        transitionMatrix[0][i] = 4;  // integer part, first number
+        transitionMatrix[4][i] = 4;  // integer part, following numbers
+        transitionMatrix[6][i] = 8;  // first number after decimal place
+        transitionMatrix[8][i] = 8;  // following number after decimal place
     }
-    transitionMatrix[4][' '] = 4;
-    transitionMatrix[4]['\t'] = 4;
-    transitionMatrix[4]['\n'] = 4;
-    _fillOther(transitionMatrix, 4, 5);    // error signal without number
-    _fillOther(transitionMatrix, 6, 7);    // end of an int
-    _fillOther(transitionMatrix, 8, 9);    // end of a decimal number
-    _fillOther(transitionMatrix, 10, 11);  // end of a decimal number
+    transitionMatrix[4]['.'] = 6;
+    _fillOther(transitionMatrix, 4, 5);  // end of an int
+    _fillOther(transitionMatrix, 6, 7);  // error: decimal number without following number
+    _fillOther(transitionMatrix, 8, 9);  // end of a decimal number
 
     // OPERANDS
-    transitionMatrix[0]['+'] = 12;
-    transitionMatrix[0]['-'] = 12;
-    transitionMatrix[0]['*'] = 13;
-    transitionMatrix[0]['/'] = 13;
-    transitionMatrix[0]['='] = 14;
-    transitionMatrix[0][':'] = 15;
-    transitionMatrix[15]['='] = 16;
-    transitionMatrix[0]['<'] = 18;
-    transitionMatrix[18]['='] = 19;
-    transitionMatrix[18]['>'] = 20;
-    transitionMatrix[0]['>'] = 22;
-    transitionMatrix[22]['='] = 24;
-    _fillOther(transitionMatrix, 15, 17);
-    _fillOther(transitionMatrix, 18, 21);
-    _fillOther(transitionMatrix, 22, 23);
+    transitionMatrix[0]['+'] = 10;
+    transitionMatrix[0]['-'] = 10;
+    transitionMatrix[0]['*'] = 11;
+    transitionMatrix[0]['/'] = 11;
+    transitionMatrix[0]['='] = 12;
+    transitionMatrix[0][':'] = 13;
+    transitionMatrix[13]['='] = 14;
+    transitionMatrix[0]['<'] = 16;
+    transitionMatrix[16]['='] = 18;
+    transitionMatrix[16]['>'] = 18;
+    transitionMatrix[0]['>'] = 20;
+    transitionMatrix[20]['='] = 22;
+    _fillOther(transitionMatrix, 13, 15);
+    _fillOther(transitionMatrix, 16, 19);
+    _fillOther(transitionMatrix, 20, 21);
 
     // MISCELLANEOUS
     transitionMatrix[0][' '] = 0;
     transitionMatrix[0]['\t'] = 0;
     transitionMatrix[0]['\n'] = 0;
-    transitionMatrix[0][';'] = 25;
-    transitionMatrix[0][','] = 26;
+    transitionMatrix[0][';'] = 24;
+    transitionMatrix[0][','] = 25;
+    transitionMatrix[0]['('] = 26;
     transitionMatrix[0][')'] = 27;
-    transitionMatrix[0]['('] = 28;
-    transitionMatrix[0]['.'] = 29;
-    transitionMatrix[0]['{'] = 31;
-    transitionMatrix[31]['}'] = 0;
-    _fillOther(transitionMatrix, 31, 31);
+    transitionMatrix[0]['.'] = 28;
+    transitionMatrix[0]['{'] = 30;
+    transitionMatrix[30]['}'] = 0;
+    _fillOther(transitionMatrix, 30, 30);
 }
 
 /**
@@ -149,14 +142,14 @@ void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHA
  */
 void _buildFinalStates(bool finalState[NUMBER_OF_STATES], char finalStateClass[NUMBER_OF_STATES]) {
     // list of states that aren't final
-    static const char notFinals[] = {0, 1, 4, 6, 8, 10, 15, 18, 22, 31};
+    static const char notFinals[] = {0, 1, 4, 6, 8, 13, 16, 20, 30};
     // list of final states
-    static const char finals[] = {2, 3, 5, 7, 9, 11, 12, 13, 14, 16, 17, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30, 32};
+    static const char finals[] = {2, 3, 5, 7, 9, 10, 11, 12, 14, 15, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31};
     // list of token classes corresponding to each final state, negative values indicate that
     // we must retreat on the source code file after such final state is reacheded
-    static const int stateClasses[] = {-ID, ERROR, -ERROR, -N_INTEGER, -ERROR, -N_REAL, OP_ADD, OP_MULT, RELATION, ASSIGN,
-                                       -DECLARE_TYPE, RELATION, RELATION, -RELATION, -RELATION, RELATION, SEMICOLON, COLON,
-                                       CLOSE_PAR, OPEN_PAR, DOT, EOF, ERROR};
+    static const int stateClasses[] = {-ID, ERROR, -N_INTEGER, -ERROR, -N_REAL, OP_ADD, OP_MULT, RELATION, ASSIGN,
+                                       -DECLARE_TYPE, RELATION, RELATION, -RELATION, -RELATION, RELATION, OP_UN,
+                                       SEMICOLON, COLON, OPEN_PAR, CLOSE_PAR, DOT, EOF, ERROR};
 
     // Mark not final states as ERROR by default
     for (unsigned long i = 0; i < sizeof notFinals; i++) {
@@ -187,6 +180,7 @@ void _buildProtectedSymbolMatrix(int protectedSymbolMatrix[NUMBER_OF_STATES_PROT
         for (int j = 0; j < NUMBER_OF_LOWER_CASE_LETTERS; j++)
             protectedSymbolMatrix[i][j] = -1;
 
+    _fillWord(protectedSymbolMatrix, "begin", 0, 1);
     _fillWord(protectedSymbolMatrix, "const", 0, 6);
     _fillWord(protectedSymbolMatrix, "do", 0, 11);
     _fillWord(protectedSymbolMatrix, "end", 0, 13);
@@ -281,10 +275,10 @@ void _nextChar(Lexer* lexer, FILE* sourceCode) {
  * @param tokenClass token class identified by the lexer
  */
 void _dealWithEOF(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) {
-    if (lexer->currState == 0) {
-        *tokenClass = EOF;  // EOF is recognized only from a0
-    } else if (lexer->currState == 31) {
-        lexer->currState = 32;
+    if (lexer->currState == 0) {  // EOF is recognized only from a0
+        *tokenClass = EOF;
+    } else if (lexer->currState == COMMENT_STATE) {  // EOF inside a comment, error
+        lexer->currState = COMMENT_STATE + 1;
         *tokenClass = lexer->finalStateClass[lexer->currState];
     } else {
         // hacky fix since we're treating EOF as just another char
@@ -303,9 +297,9 @@ void _nextState(Lexer* lexer) {
     lexer->currState = lexer->transitionMatrix[lexer->currState][lexer->currChar];
 
     // by default +/- is recognized as an operation
-    // but if the previous token was a number or id, it should be considered as a sign
-    if (lexer->currState == 12 && !lexer->lastWasNumberOrIdent)
-        lexer->currState = 4;
+    // but if the previous token was neither a number nor and id, it should be considered as a unary operator
+    if (lexer->currState == OP_ADD_STATE && !lexer->lastWasNumberOrIdent)
+        lexer->currState = OP_UN_STATE;
 }
 
 void _identifyTokenClass(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) {

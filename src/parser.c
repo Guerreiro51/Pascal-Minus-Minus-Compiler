@@ -54,7 +54,7 @@ CompileRet compile(FILE* sourceCode) {
  */
 char* _getTokenClassName(int tokenClass) {
     // indexes token class names for user-friendly printing
-    static char* tokenClassName[] = {"N_REAL", "N_INTEGER", "OP_ADD", "OP_MULT", "RELATION",
+    static char* tokenClassName[] = {"", "N_REAL", "N_INTEGER", "OP_UN", "OP_ADD", "OP_MULT", "RELATION",
                                      "ASSIGN", "DECLARE_TYPE", "SEMICOLON", "COLON",
                                      "OPEN_PAR", "CLOSE_PAR", "DOT", "ID", "BEGIN", "CONST",
                                      "DO", "END", "ELSE", "IF", "INTEGER", "FOR", "PROGRAM", "PROCEDURE",
@@ -70,10 +70,11 @@ char* _getTokenClassName(int tokenClass) {
  */
 char* _getLexerErrorMessage(int currState) {
     static char* lexerErrorMessages[NUMBER_OF_STATES] = {"", "", "",
-                                                         "Error: Invalid Identifier", "",
-                                                         "Error: expected a number but found a character", "", "", "",
-                                                         "Error: did you mean to type a real number?", "", "", "", "",
-                                                         "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+                                                         "Error: Invalid Identifier", "", "", "",
+                                                         "Error: did you mean to type a real number?", "", "", "", "", "",
+                                                         ""
+                                                         "",
+                                                         "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
                                                          "Error: Unexpected end of file"};
     return lexerErrorMessages[currState];
 }
