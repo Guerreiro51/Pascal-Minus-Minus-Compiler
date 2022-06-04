@@ -8,7 +8,7 @@
 
 /**
  * @brief Allocates memory for string
- * 
+ *
  * @param s string
  */
 void stringInit(String* s) {
@@ -20,7 +20,7 @@ void stringInit(String* s) {
 
 /**
  * @brief Deallocates memory used
- * 
+ *
  * @param s string
  */
 void stringDestroy(String* s) {
@@ -29,7 +29,7 @@ void stringDestroy(String* s) {
 
 /**
  * @brief Expands string capacity
- * 
+ *
  * @param s string
  * @param newCapacity desired capacity
  */
@@ -44,7 +44,7 @@ void expand(String* s, unsigned long newCapacity) {
 
 /**
  * @brief Appends character to end of string
- * 
+ *
  * @param s string
  * @param c character to be appended
  */
@@ -62,7 +62,7 @@ void append(String* s, char c) {
 
 /**
  * @brief Overwrites string
- * 
+ *
  * @param s string
  * @param cstr text
  * @param size text size
