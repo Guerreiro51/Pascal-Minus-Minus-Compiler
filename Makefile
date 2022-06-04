@@ -58,7 +58,7 @@ objFolder:
 .PHONY: run
 
 run:
-	@ read -e -r -p "Enter the path to the file to compile: " PATH \
+	@ read -r -p "Enter the path to the file to compile: " PATH \
 		&& ./$(PROJ_NAME) $${PATH};
 
 .PHONY: clean
@@ -68,5 +68,5 @@ clean:
 
 .PHONY: valgrind
 valgrind:
-	@ read -e -r -p "Enter the path to the file to compile: " PATH \
+	@ read -r -p "Enter the path to the file to compile: " PATH \
 		&& /usr/bin/valgrind --leak-check=full ./$(PROJ_NAME) $${PATH};
