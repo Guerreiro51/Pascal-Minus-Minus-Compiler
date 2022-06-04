@@ -38,7 +38,7 @@ void nextToken(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) 
     // Cleaning the buffer
     writeToString(buffer, "", 0);
 
-    while (!lexer->finalState[lexer->currState]) { // while the automaton hasn't reached a file state
+    while (!lexer->finalState[lexer->currState]) { // while the automaton hasn't reached a final state
         _nextChar(lexer, sourceCode);   // read char from file
 
         if (lexer->fscanfFlag == EOF) {
