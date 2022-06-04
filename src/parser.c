@@ -29,10 +29,9 @@ CompileRet compile(FILE* sourceCode) {
     CompileRet compileRet;
     compileRet.errorCount = 0;
 
-    while (tokenClass != EOF) {  // stops when the lexer has finished reading the source code file
-        
-        nextToken(&lexer, &buffer, sourceCode, &tokenClass); // get next token
-
+    // stops when the lexer has finished reading the source code file
+    while (tokenClass != EOF) {
+        nextToken(&lexer, &buffer, sourceCode, &tokenClass);  // get next token
         if (tokenClass == ERROR) {
             // Col count is incremented, just for showing purposes, in case there was a retreat
             printf("Line %d Col %d -- '%s'\n%s\n", lexer.currLine, lexer.currCol + (lexer.finalStateClass[lexer.currState] < 0), buffer.str, _getLexerErrorMessage(lexer.currState));
@@ -65,7 +64,7 @@ char* _getTokenClassName(int tokenClass) {
 
 /**
  * @brief Returns error description given current automaton state.
- * 
+ *
  * @param currState current automaton state
  * @return char* error description
  */

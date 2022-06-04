@@ -17,7 +17,7 @@
 #define NUMBER_OF_STATES_PROTECTED_SYMBOLS 65  // number of states of the protected symbol detection automaton
 #define NUMBER_OF_LOWER_CASE_LETTERS 26        // number of lower case letters (inputs of the protected symbol detection automaton)
 
-#define COMMENT_STATE 31    // state of the automaton when reading a comment
+#define COMMENT_STATE 31  // state of the automaton when reading a comment
 
 // existing token classes
 enum TOKEN_CLASS {  N_REAL, N_INTEGER, OP_ADD, OP_MULT, RELATION, 
@@ -28,25 +28,25 @@ enum TOKEN_CLASS {  N_REAL, N_INTEGER, OP_ADD, OP_MULT, RELATION,
 
 // defines the structures necessary for lexer operation
 typedef struct {
-    int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS];    // automaton transition matrix
-    bool finalState[NUMBER_OF_STATES];       // whether a state is final or not
-    char finalStateClass[NUMBER_OF_STATES];  // associates each final state with a token class
+    int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS];  // automaton transition matrix
+    bool finalState[NUMBER_OF_STATES];                        // whether a state is final or not
+    char finalStateClass[NUMBER_OF_STATES];                   // associates each final state with a token class
 
     // protected symbol recognition automaton transition matrix
-    int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS];    
-    char protectedSymbolFinalStates[NUMBER_OF_STATES_PROTECTED_SYMBOLS];    // whether a state is final or not
+    int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS];
+    char protectedSymbolFinalStates[NUMBER_OF_STATES_PROTECTED_SYMBOLS];  // whether a state is final or not
 
     char currChar;
     int fscanfFlag;
     int currState;  // current automaton state
     int currLine;   // current line on P-- source code file
-    int currCol;    // current column on P-- source code file  
+    int currCol;    // current column on P-- source code file
 
     bool lastWasNumberOrIdent;  // indicates whether the last token was a number or identifier
 } Lexer;
 
-void lexerInit(Lexer* lexer);   // lexer initialization
-void nextToken(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass);    // gets next token
+void lexerInit(Lexer* lexer);                                                     // lexer initialization
+void nextToken(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass);  // gets next token
 
 // auxiliary functions called on lexer initialization to build some necessary structures
 void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS]);

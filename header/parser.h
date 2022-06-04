@@ -12,8 +12,8 @@ typedef struct {
     int errorCount;
 } CompileRet;
 
-CompileRet compile(FILE* sourceCode);       // the syntax analyser controls the compilation process
-char* _getTokenClassName(int token_class);  // returns token class name given token class number
-char* _getLexerErrorMessage(int currState); // return error description given current automaton state
+CompileRet compile(FILE* sourceCode);        // the syntax analyser controls the compilation process
+char* _getTokenClassName(int token_class);   // returns token class name given token class number
+char* _getLexerErrorMessage(int currState);  // return error description given current automaton state
 
 #endif  // PARSER_H
