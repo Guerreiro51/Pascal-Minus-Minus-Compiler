@@ -28,5 +28,11 @@ int main(int argc, char** argv) {
     CompileRet compileRet = compile(sourceCode);
     fclose(sourceCode);
 
-    return (compileRet.errorCount > 0) ? -1 : 0;
+    // print compiler status
+    if( compileRet.errorCount > 0 )
+        printf("Program compiled with error\n");
+    else  if( compileRet.errorCount == 0 )
+        printf("Program compiled successfully\n");
+
+    return 0;
 }

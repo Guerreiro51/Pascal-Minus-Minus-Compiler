@@ -29,20 +29,34 @@ CompileRet compile(FILE* sourceCode) {
     CompileRet compileRet;
     compileRet.errorCount = 0;
 
+    // open output file
+    FILE* output = fopen( "saida.txt", "w+" );
+    if( output == NULL ){
+        printf("Error: couldn't open output file\n");
+        compileRet.errorCount = -1;
+        return compileRet;
+    }
+
     // stops when the lexer has finished reading the source code file
     while (tokenClass != EOF) {
         nextToken(&lexer, &buffer, sourceCode, &tokenClass);  // get next token
         if (tokenClass == ERROR) {
             // Col count is incremented, just for showing purposes, in case there was a retreat
             printf("Line %d Col %d -- '%s'\n%s\n", lexer.currLine, lexer.currCol + (lexer.finalStateClass[lexer.currState] < 0), buffer.str, _getLexerErrorMessage(lexer.currState));
+            fprintf(output, "Line %d Col %d -- '%s'\n%s\n", lexer.currLine, lexer.currCol + (lexer.finalStateClass[lexer.currState] < 0), buffer.str, _getLexerErrorMessage(lexer.currState));
             compileRet.errorCount++;
-        } else if (tokenClass == EOF)
+        } else if (tokenClass == EOF){
             printf("EOF\n");
-        else
+            fprintf(output, "EOF\n");
+        }
+        else{
             printf("%s, %s\n", buffer.str, _getTokenClassName(tokenClass));  // print token pair: <value, class>
+            fprintf(output, "%s, %s\n", buffer.str, _getTokenClassName(tokenClass));  // print token pair: <value, class>
+        }
     }
 
     stringDestroy(&buffer);
+    fclose(output);
     return compileRet;
 }
 
