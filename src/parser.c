@@ -84,7 +84,7 @@ char* _getTokenClassName(int tokenClass) {
  */
 char* _getLexerErrorMessage(int currState) {
     static char* lexerErrorMessages[NUMBER_OF_STATES] = {"", "", "",
-                                                         "Error: Invalid Identifier", "", "", "",
+                                                         "Error: Invalid character", "", "", "",
                                                          "Error: did you mean to type a real number?", "", "", "", "", "",
                                                          ""
                                                          "",
