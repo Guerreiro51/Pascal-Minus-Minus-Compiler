@@ -30,7 +30,7 @@ CompileRet compile(FILE* sourceCode) {
     compileRet.errorCount = 0;
 
     // open output file
-    FILE* output = fopen( "saida.txt", "w+" );
+    FILE* output = fopen( "output.txt", "w" );
     if( output == NULL ){
         printf("Error: couldn't open output file\n");
         compileRet.errorCount = -1;

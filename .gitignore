@@ -3,10 +3,13 @@
 !*/
 !*.c
 !*.h
-!*.txt
+!makefile
 
-!.vscode/
+# Allow tests but disallow the output
+!*.txt
+output.txt
+
+# Git files
 !.gitignore
 !README.md
 !LICENSE
-!makefile
