@@ -259,7 +259,7 @@ void _nextChar(Lexer* lexer, FILE* sourceCode) {
     lexer->fscanfFlag = fscanf(sourceCode, "%c", &lexer->currChar);
     if (lexer->fscanfFlag != -1) {
         lexer->currLine += (lexer->currChar == '\n');
-        lexer->currCol = (lexer->currChar == '\n') ? 1 : lexer->currCol + 1;
+        lexer->currCol = (lexer->currChar == '\n') ? 1 : lexer->currCol + 1 + (lexer->currChar == '\t')*3;
     }
 }
 
