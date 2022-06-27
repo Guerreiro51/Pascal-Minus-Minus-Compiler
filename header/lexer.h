@@ -29,6 +29,10 @@ enum TOKEN_CLASS {  N_REAL = 1, N_INTEGER, OP_UN, OP_ADD, OP_MULT, RELATION,
 
 // defines the structures necessary for lexer operation
 typedef struct {
+    String buffer;
+    FILE* sourceCode;
+    int tokenClass;
+
     int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS];  // automaton transition matrix
     bool finalState[NUMBER_OF_STATES];                        // whether a state is final or not
     char finalStateClass[NUMBER_OF_STATES];                   // associates each final state with a token class
@@ -46,8 +50,8 @@ typedef struct {
     bool lastWasNumberOrIdent;  // indicates whether the last token was a number or identifier
 } Lexer;
 
-void lexerInit(Lexer* lexer);                                                     // lexer initialization
-void nextToken(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass);  // gets next token
+void lexerInit(Lexer* lexer, FILE* sourceCode);                                                     // lexer initialization
+void nextToken(Lexer* lexer);  // gets next token
 
 // auxiliary functions called on lexer initialization to build some necessary structures
 void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS]);
@@ -60,10 +64,10 @@ void _fillOther(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS], int sta
 void _fillWord(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS], const char word[], int firstState, int secondState);
 
 // auxiliary functions used during lexer operation
-void _nextChar(Lexer* lexer, FILE* sourceCode);
-void _dealWithEOF(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass);
+void _nextChar(Lexer* lexer);
+void _dealWithEOF(Lexer* lexer);
 void _nextState(Lexer* lexer);
-void _identifyTokenClass(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass);
-int _checkIfProtectedSymbol(Lexer* lexer, String* buffer);
+void _identifyTokenClass(Lexer* lexer);
+int _checkIfProtectedSymbol(Lexer* lexer);
 
 #endif  // LEXER_H

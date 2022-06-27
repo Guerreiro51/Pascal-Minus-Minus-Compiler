@@ -1,0 +1,17 @@
+program fatorial_sobre_pi;
+var x: real;
+
+	procedure fat(n: real);
+	var i: integer;
+	begin
+		fat:=3.a14;
+		for i:=2 to n do
+			fat:=fat*i;	
+	end;
+
+begin
+	read(x,@);
+	x:=fat(x);
+	write(x);
+{erro de numero real mal formado, caracter fora da linguagem, comentario nao fechado...
+end.

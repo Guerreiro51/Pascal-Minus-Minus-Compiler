@@ -12,11 +12,15 @@
  * @brief Builds structures needed for lexer operation.
  * @param lexer
  */
-void lexerInit(Lexer* lexer) {
+void lexerInit(Lexer* lexer, FILE* sourceCode) {
     lexer->currState = 0;
     lexer->currLine = 1;
     lexer->currCol = 1;
     lexer->lastWasNumberOrIdent = false;
+    lexer->tokenClass = 0;
+    stringInit(&lexer->buffer);
+    lexer->sourceCode = sourceCode;
+
     _buildTransitionMatrix(lexer->transitionMatrix);
     _buildFinalStates(lexer->finalState, lexer->finalStateClass);
     _buildProtectedSymbolMatrix(lexer->protectedSymbolMatrix);
@@ -31,18 +35,18 @@ void lexerInit(Lexer* lexer) {
  * @param sourceCode P-- source code file pointer
  * @param tokenClass new token class
  */
-void nextToken(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) {
+void nextToken(Lexer* lexer) {
     // initial state
     lexer->currState = 0;
 
     // Cleaning the buffer
-    writeToString(buffer, "", 0);
+    writeToString(&lexer->buffer, "", 0);
 
     while (!lexer->finalState[lexer->currState]) {  // while the automaton hasn't reached a final state
-        _nextChar(lexer, sourceCode);               // read char from file
+        _nextChar(lexer);               // read char from file
 
         if (lexer->fscanfFlag == EOF) {
-            _dealWithEOF(lexer, buffer, sourceCode, tokenClass);
+            _dealWithEOF(lexer);
             return;
         }
 
@@ -54,10 +58,10 @@ void nextToken(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) 
         // and we won't retreat (to avoid showing twice)
         if (lexer->finalStateClass[lexer->currState] == -ERROR ||
             (lexer->currState != 0 && lexer->currState != COMMENT_STATE && lexer->finalStateClass[lexer->currState] >= 0)) {
-            append(buffer, lexer->currChar);
+            append(&lexer->buffer, lexer->currChar);
         }
     }
-    _identifyTokenClass(lexer, buffer, sourceCode, tokenClass);
+    _identifyTokenClass(lexer);
 }
 
 /**
@@ -255,8 +259,8 @@ void _fillWord(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUM
  * @param lexer lexer instance
  * @param sourceCode P-- source code pointer
  */
-void _nextChar(Lexer* lexer, FILE* sourceCode) {
-    lexer->fscanfFlag = fscanf(sourceCode, "%c", &lexer->currChar);
+void _nextChar(Lexer* lexer) {
+    lexer->fscanfFlag = fscanf(lexer->sourceCode, "%c", &lexer->currChar);
     if (lexer->fscanfFlag != -1) {
         lexer->currLine += (lexer->currChar == '\n');
         lexer->currCol = (lexer->currChar == '\n') ? 1 : lexer->currCol + 1 + (lexer->currChar == '\t')*3;
@@ -274,22 +278,22 @@ void _nextChar(Lexer* lexer, FILE* sourceCode) {
  * @param sourceCode P-- source code file pointer
  * @param tokenClass token class identified by the lexer
  */
-void _dealWithEOF(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) {
+void _dealWithEOF(Lexer* lexer) {
     if (lexer->currState == 0) {  // EOF is recognized only from a0
-        *tokenClass = EOF;
+        lexer->tokenClass = EOF;
     } else if (lexer->currState == COMMENT_STATE) {  // EOF inside a comment, error
         lexer->currState = COMMENT_STATE + 1;
-        *tokenClass = lexer->finalStateClass[lexer->currState];
+        lexer->tokenClass = lexer->finalStateClass[lexer->currState];
     } else {
         // hacky fix since we're treating EOF as just another char
         lexer->currState = lexer->transitionMatrix[lexer->currState]['@'];
 
-        *tokenClass = lexer->finalStateClass[lexer->currState];
-        fseek(sourceCode, 0, SEEK_END);  // retreat
+        lexer->tokenClass = lexer->finalStateClass[lexer->currState];
+        fseek(lexer->sourceCode, 0, SEEK_END);  // retreat
 
-        *tokenClass = abs(*tokenClass);
-        if ((*tokenClass) == ID)
-            *tokenClass = _checkIfProtectedSymbol(lexer, buffer);
+        lexer->tokenClass = abs(lexer->tokenClass);
+        if (lexer->tokenClass == ID)
+            lexer->tokenClass = _checkIfProtectedSymbol(lexer);
     }
 }
 
@@ -302,28 +306,28 @@ void _nextState(Lexer* lexer) {
         lexer->currState = OP_UN_STATE;
 }
 
-void _identifyTokenClass(Lexer* lexer, String* buffer, FILE* sourceCode, int* tokenClass) {
-    *tokenClass = lexer->finalStateClass[lexer->currState];
+void _identifyTokenClass(Lexer* lexer) {
+    lexer->tokenClass = lexer->finalStateClass[lexer->currState];
 
-    if ((*tokenClass) < 0) {
+    if (lexer->tokenClass < 0) {
         // retreat the file and the count
-        fseek(sourceCode, -sizeof(char), SEEK_CUR);
+        fseek(lexer->sourceCode, -sizeof(char), SEEK_CUR);
         lexer->currLine -= (lexer->currChar == '\n');
         lexer->currCol -= (lexer->currChar != '\n');
-        *tokenClass = -1 * (*tokenClass);
+        lexer->tokenClass = -1 * (lexer->tokenClass);
     }
-    if ((*tokenClass) == ID)
-        *tokenClass = _checkIfProtectedSymbol(lexer, buffer);
+    if (lexer->tokenClass == ID)
+        lexer->tokenClass = _checkIfProtectedSymbol(lexer);
 
     // update the flag based on the tokenClass
-    lexer->lastWasNumberOrIdent = (*tokenClass == ID || *tokenClass == N_INTEGER || *tokenClass == N_REAL);
+    lexer->lastWasNumberOrIdent = (lexer->tokenClass == ID || lexer->tokenClass == N_INTEGER || lexer->tokenClass == N_REAL);
 }
 
-int _checkIfProtectedSymbol(Lexer* lexer, String* buffer) {
+int _checkIfProtectedSymbol(Lexer* lexer) {
     int state = 0;
-    for (int i = 0; state != -1 && i < buffer->size; i++) {
-        if (islower(buffer->str[i]))
-            state = lexer->protectedSymbolMatrix[state][buffer->str[i] - 'a'];
+    for (int i = 0; state != -1 && i < lexer->buffer.size; i++) {
+        if (islower(lexer->buffer.str[i]))
+            state = lexer->protectedSymbolMatrix[state][lexer->buffer.str[i] - 'a'];
         else
             return ID;
     }

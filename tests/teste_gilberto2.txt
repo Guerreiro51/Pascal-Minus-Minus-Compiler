@@ -1,0 +1,12 @@
+program soma_i_j_vezes;
+{erro de ident, problema com palavra reservada}
+var i, j, res: integer;
+begin
+read(i,j);
+1res:=0;
+while (j>0) du
+	begin
+	res:=res+i;
+	j:=j-1;
+	end;
+end.

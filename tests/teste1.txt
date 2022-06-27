@@ -1,5 +1,5 @@
 program p;
-var x:integer;
+var _very_long_variable_____name_teste_123_aaa_3_b__:integer;
 begin
     x:=1;
     while(x<3) do

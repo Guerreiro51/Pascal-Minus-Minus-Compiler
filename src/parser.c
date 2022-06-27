@@ -19,13 +19,9 @@
 CompileRet compile(FILE* sourceCode) {
     // initializes a lexical analyser (lexer)
     Lexer lexer;
-    lexerInit(&lexer);
+    lexerInit(&lexer, sourceCode);
 
     // stores the last lexem read by the lexer
-    String buffer;
-    stringInit(&buffer);
-
-    int tokenClass = 0;  // last token class identified by the lexer
     CompileRet compileRet;
     compileRet.errorCount = 0;
 
@@ -38,24 +34,24 @@ CompileRet compile(FILE* sourceCode) {
     }
 
     // stops when the lexer has finished reading the source code file
-    while (tokenClass != EOF) {
-        nextToken(&lexer, &buffer, sourceCode, &tokenClass);  // get next token
-        if (tokenClass == ERROR) {
+    while (lexer.tokenClass != EOF) {
+        nextToken(&lexer);  // get next token
+        if (lexer.tokenClass == ERROR) {
             // Col count is incremented, just for showing purposes, in case there was a retreat
-            printf("Line %d Col %d -- '%s'\n%s\n", lexer.currLine, lexer.currCol + (lexer.finalStateClass[lexer.currState] < 0), buffer.str, _getLexerErrorMessage(lexer.currState));
-            fprintf(output, "Line %d Col %d -- '%s'\n%s\n", lexer.currLine, lexer.currCol + (lexer.finalStateClass[lexer.currState] < 0), buffer.str, _getLexerErrorMessage(lexer.currState));
+            printf("Line %d Col %d -- '%s'\n%s\n", lexer.currLine, lexer.currCol + (lexer.finalStateClass[lexer.currState] < 0), lexer.buffer.str, _getLexerErrorMessage(lexer.currState));
+            fprintf(output, "Line %d Col %d -- '%s'\n%s\n", lexer.currLine, lexer.currCol + (lexer.finalStateClass[lexer.currState] < 0), lexer.buffer.str, _getLexerErrorMessage(lexer.currState));
             compileRet.errorCount++;
-        } else if (tokenClass == EOF){
+        } else if (lexer.tokenClass == EOF){
             printf("EOF\n");
             fprintf(output, "EOF\n");
         }
         else{
-            printf("%s, %s\n", buffer.str, _getTokenClassName(tokenClass));  // print token pair: <value, class>
-            fprintf(output, "%s, %s\n", buffer.str, _getTokenClassName(tokenClass));  // print token pair: <value, class>
+            printf("%s, %s\n", lexer.buffer.str, _getTokenClassName(lexer.tokenClass));  // print token pair: <value, class>
+            fprintf(output, "%s, %s\n", lexer.buffer.str, _getTokenClassName(lexer.tokenClass));  // print token pair: <value, class>
         }
     }
 
-    stringDestroy(&buffer);
+    stringDestroy(&lexer.buffer);
     fclose(output);
     return compileRet;
 }
