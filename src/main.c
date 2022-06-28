@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
 
     // print compiler status
     if( compileRet.errorCount > 0 )
-        printf("Program compiled with error\n");
+        printf("Program compiled with %d errors\n", compileRet.errorCount);
     else  if( compileRet.errorCount == 0 )
         printf("Program compiled successfully\n");
 

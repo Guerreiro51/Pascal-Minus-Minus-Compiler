@@ -35,7 +35,7 @@ void lexerInit(Lexer* lexer, FILE* sourceCode) {
  * @param sourceCode P-- source code file pointer
  * @param tokenClass new token class
  */
-void nextToken(Lexer* lexer) {
+int nextToken(Lexer* lexer, FILE* output) {
     // initial state
     lexer->currState = 0;
 
@@ -47,7 +47,7 @@ void nextToken(Lexer* lexer) {
 
         if (lexer->fscanfFlag == EOF) {
             _dealWithEOF(lexer);
-            return;
+            return 0;
         }
 
         _nextState(lexer);
@@ -62,6 +62,17 @@ void nextToken(Lexer* lexer) {
         }
     }
     _identifyTokenClass(lexer);
+
+    if (lexer->tokenClass == ERROR) {
+        // Col count is incremented, just for showing purposes, in case there was a retreat
+        printf("Line %d Col %d -- '%s'\n%s\n", lexer->currLine, lexer->currCol + (lexer->finalStateClass[lexer->currState] < 0), lexer->buffer.str, _getLexerErrorMessage(lexer->currState));
+        fprintf(output, "Line %d Col %d -- '%s'\n%s\n", lexer->currLine, lexer->currCol + (lexer->finalStateClass[lexer->currState] < 0), lexer->buffer.str, _getLexerErrorMessage(lexer->currState));
+        return nextToken(lexer, output) + 1;
+    } else if (lexer->tokenClass == EOF){
+        printf("EOF\n");
+        fprintf(output, "EOF\n");
+    }
+    return 0;
 }
 
 /**
@@ -336,4 +347,21 @@ int _checkIfProtectedSymbol(Lexer* lexer) {
         return ID;
 
     return lexer->protectedSymbolFinalStates[state];
+}
+
+/**
+ * @brief Returns error description given current automaton state.
+ *
+ * @param currState current automaton state
+ * @return char* error description
+ */
+char* _getLexerErrorMessage(int currState) {
+    static char* lexerErrorMessages[NUMBER_OF_STATES] = {"", "", "",
+                                                         "Error: Invalid character", "", "", "",
+                                                         "Error: did you mean to type a real number?", "", "", "", "", "",
+                                                         ""
+                                                         "",
+                                                         "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+                                                         "Error: Unexpected end of file"};
+    return lexerErrorMessages[currState];
 }

@@ -1,0 +1,5 @@
+gcc -c -o build/lexer.o src/lexer.c -I -Wall -Wextra -Wshadow -Wundef -Wformat=2 -Wfloat-equal -Wcast-align -std=c17 -march=native -O3 -Ofast -g -lm
+gcc -c -o build/main.o src/main.c -I -Wall -Wextra -Wshadow -Wundef -Wformat=2 -Wfloat-equal -Wcast-align -std=c17 -march=native -O3 -Ofast -g -lm
+gcc -c -o build/parser.o src/parser.c -I -Wall -Wextra -Wshadow -Wundef -Wformat=2 -Wfloat-equal -Wcast-align -std=c17 -march=native -O3 -Ofast -g -lm
+gcc -c -o build/vector.o src/vector.c -I -Wall -Wextra -Wshadow -Wundef -Wformat=2 -Wfloat-equal -Wcast-align -std=c17 -march=native -O3 -Ofast -g -lm
+gcc -o pmm build/lexer.o build/main.o build/parser.o build/vector.o -I -Wall -Wextra -Wshadow -Wundef -Wformat=2 -Wfloat-equal -Wcast-align -std=c17 -march=native -O3 -Ofast -g -lm

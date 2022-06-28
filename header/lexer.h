@@ -51,7 +51,7 @@ typedef struct {
 } Lexer;
 
 void lexerInit(Lexer* lexer, FILE* sourceCode);                                                     // lexer initialization
-void nextToken(Lexer* lexer);  // gets next token
+int nextToken(Lexer* lexer, FILE* output);  // gets next token
 
 // auxiliary functions called on lexer initialization to build some necessary structures
 void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS]);
@@ -69,5 +69,7 @@ void _dealWithEOF(Lexer* lexer);
 void _nextState(Lexer* lexer);
 void _identifyTokenClass(Lexer* lexer);
 int _checkIfProtectedSymbol(Lexer* lexer);
+
+char* _getLexerErrorMessage(int currState);  // return error description given current automaton state
 
 #endif  // LEXER_H
