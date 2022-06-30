@@ -6,9 +6,9 @@
 #define STRING_H
 
 typedef struct {
-    char* str;               // string
-    unsigned long size;      // string size
-    unsigned long capacity;  // pointer capacity
+    char* str;
+    unsigned long size;
+    unsigned long capacity;
 } String;
 
 void stringInit(String* s);

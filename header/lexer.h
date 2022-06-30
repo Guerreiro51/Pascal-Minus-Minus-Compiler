@@ -40,7 +40,8 @@ typedef struct {
 
     // protected symbol recognition automaton transition matrix
     int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUMBER_OF_LOWER_CASE_LETTERS];
-    char protectedSymbolFinalStates[NUMBER_OF_STATES_PROTECTED_SYMBOLS];  // whether a state is final or not
+    // whether a state is final or not and their token class
+    char protectedSymbolFinalStates[NUMBER_OF_STATES_PROTECTED_SYMBOLS];
 
     char currChar;
     int fscanfFlag;
@@ -55,7 +56,7 @@ bool lexerInit(Lexer* lexer, const char* sourceFilePath);
 void lexerDestroy(Lexer* lexer);
 int nextToken(Lexer* lexer, FILE* output);  // gets next token
 
-int lexerCurrColWithoutRetreat(Lexer* lexer);
+int lexerCurrColWithoutRetreat(Lexer* lexer);      // return lexer col considering eventual retreats (for readability only)
 const char* lexerErrorMessage(int currState);      // return error description given current automaton state
 const char* lexerTokenClassName(int token_class);  // returns token class name given token class number
 char* lexerBuffer(Lexer* lexer);                   // return the buffer string

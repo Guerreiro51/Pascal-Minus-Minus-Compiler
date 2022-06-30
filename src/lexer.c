@@ -10,7 +10,8 @@
 
 /**
  * @brief Builds structures needed for lexer operation.
- * @param lexer
+ *
+ * @param lexer a lexer instance
  */
 bool lexerInit(Lexer* lexer, const char* sourceFilePath) {
     lexer->currState = 0;
@@ -41,6 +42,11 @@ bool lexerInit(Lexer* lexer, const char* sourceFilePath) {
     return false;
 }
 
+/**
+ * @brief Destroy file handles and the buffer
+ * 
+ * @param lexer A lexer instance
+ */
 void lexerDestroy(Lexer* lexer) {
     fclose(lexer->sourceCode);
     fclose(lexer->tokenOutput);
@@ -102,7 +108,7 @@ int nextToken(Lexer* lexer, FILE* output) {
  * 'i' and reads the character of ASCII number 'j'.
  * If transionMatrix[i][j] == -1, we have an invalid transition.
  *
- * @param transitionMatrix
+ * @param transitionMatrix the transition matrix
  */
 void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS]) {
     // invalid state by default
@@ -170,7 +176,7 @@ void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHA
 }
 
 /**
- * @brief  Build a vector that identifies final states.
+ * @brief Build a vector that identifies final states.
  *
  * @param finalState vector that identifies final states
  * @param finalStateClass vector that identifies to which token class each final state corresponds
@@ -237,7 +243,7 @@ void _buildProtectedSymbolMatrix(int protectedSymbolMatrix[NUMBER_OF_STATES_PROT
 /**
  * @brief Build a vector that identifies final states regarding protected symbols.
  *
- * @param protectedSymbolFinalState vector that identifies final states' token classes
+ * @param protectedSymbolFinalState vector that identifies final states token classes
  */
 void _buildProtectedSymbolFinalStates(char protectedSymbolFinalState[NUMBER_OF_STATES_PROTECTED_SYMBOLS]) {
     // list of final states
@@ -256,9 +262,9 @@ void _buildProtectedSymbolFinalStates(char protectedSymbolFinalState[NUMBER_OF_S
 /**
  * @brief Auxiliary function used to fill the transition matrix. Fills in "other" transitions.
  *
- * @param transitionMatrix
- * @param startState
- * @param endState
+ * @param transitionMatrix the transition matrix
+ * @param startState the state where the 'other' transition starts
+ * @param endState the state where the 'other' transition goes
  */
 void _fillOther(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS], int startState, int endState) {
     for (int i = 0; i < NUMBER_OF_CHARS; i++)
@@ -270,7 +276,7 @@ void _fillOther(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS], int sta
  * @brief Auxiliary function used to fill the protected symbol transition matrix. Given a protected symbol,
  * fills in the corresponding entries in the matrix.
  *
- * @param protectedSymbolMatrix
+ * @param protectedSymbolMatrix the protected symbol matrix
  * @param word protected symbol
  * @param firstState state from where recognizition starts
  * @param secondState second state on word recognition flow
@@ -288,7 +294,6 @@ void _fillWord(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUM
  * and line appropriately.
  *
  * @param lexer lexer instance
- * @param sourceCode P-- source code pointer
  */
 void _nextChar(Lexer* lexer) {
     lexer->fscanfFlag = fscanf(lexer->sourceCode, "%c", &lexer->currChar);
@@ -328,6 +333,11 @@ void _dealWithEOF(Lexer* lexer) {
     }
 }
 
+/**
+ * @brief Advances in the transition matrix given the currState and currChar
+ * 
+ * @param lexer a lexer instance
+ */
 void _nextState(Lexer* lexer) {
     lexer->currState = lexer->transitionMatrix[lexer->currState][lexer->currChar];
 
@@ -337,6 +347,12 @@ void _nextState(Lexer* lexer) {
         lexer->currState = OP_UN_STATE;
 }
 
+/**
+ * @brief Identifies what is the last token class. Deals with negative token class
+ * (retreat) and checks if it is a protected symbol. Update lastWasNumberOrIdent flag
+ * 
+ * @param lexer 
+ */
 void _identifyTokenClass(Lexer* lexer) {
     lexer->tokenClass = lexer->finalStateClass[lexer->currState];
 
@@ -354,6 +370,13 @@ void _identifyTokenClass(Lexer* lexer) {
     lexer->lastWasNumberOrIdent = (lexer->tokenClass == ID || lexer->tokenClass == N_INTEGER || lexer->tokenClass == N_REAL);
 }
 
+/**
+ * @brief Checks if the last token read was a protected symbol by
+ * walking through the protected symbol matrix.
+ * 
+ * @param lexer a lexer instance
+ * @return int corresponding token class (protected symbol or ID)
+ */
 int _checkIfProtectedSymbol(Lexer* lexer) {
     int state = 0;
     for (unsigned long i = 0; state != -1 && i < lexer->buffer.size; i++) {

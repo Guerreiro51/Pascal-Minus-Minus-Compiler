@@ -10,6 +10,14 @@
 
 #include "../header/string.h"
 
+/**
+ * @brief Initializes parser variables
+ *
+ * @param parser a parser instance
+ * @param sourceCodePath a source code path to be compiled
+ * @return true if there was some error
+ * @return false if there was no error
+ */
 bool parserInit(Parser* parser, const char* sourceCodePath) {
     parser->errorCount = 0;
 
@@ -27,6 +35,11 @@ bool parserInit(Parser* parser, const char* sourceCodePath) {
     return false;
 }
 
+/**
+ * @brief Destroy file handles and the lexer
+ *
+ * @param parser initialized parser instance
+ */
 void parserDestroy(Parser* parser) {
     fclose(parser->output);
     lexerDestroy(&parser->lexer);
@@ -38,11 +51,13 @@ void parserDestroy(Parser* parser) {
  * @param Parser initialized parser instance
  */
 void compile(Parser* parser) {
-    parser->errorCount += nextToken(&parser->lexer, parser->output);  // get next token
+    // get first token
+    parser->errorCount += nextToken(&parser->lexer, parser->output);
 
-    // initial variable: programa
+    // starts building the implicit parse tree
     _programa(parser);
 
+    // check if source code ended
     if (parser->lexer.fscanfFlag != EOF) {
         _error(parser, EOF);
     }
@@ -226,7 +241,7 @@ void _dc_p(Parser* parser) {
 
 /**
  * @brief Implements rule 10 of the grammar:
- * <parametros> ::= ( <lista_par> ) | λ
+ * <parametros> ::= ( <lista_par> ) | lambda
  * @param Parser initialized parser instance
  */
 void _parametros(Parser* parser) {
@@ -336,7 +351,7 @@ void _argumentos(Parser* parser) {
 
 /**
  * @brief Implements rule 17 of the grammar:
- * <mais_ident> ::= ; <argumentos> | λ
+ * <mais_ident> ::= ; <argumentos> | lambda
  * @param Parser initialized parser instance
  */
 void _mais_ident(Parser* parser) {
@@ -360,7 +375,7 @@ void _pfalsa(Parser* parser) {
 
 /**
  * @brief Implements rule 19 of the grammar:
- * <comandos> ::= <cmd> ; <comandos> | λ
+ * <comandos> ::= <cmd> ; <comandos> | lambda
  * @param Parser initialized parser instance
  */
 void _comandos(Parser* parser) {
@@ -587,7 +602,7 @@ void _termo(Parser* parser) {
 
 /**
  * @brief Implements rule 28 of the grammar:
- * <mais_fatores> ::= <op_mul> <fator> <mais_fatores> | λ
+ * <mais_fatores> ::= <op_mul> <fator> <mais_fatores> | lambda
  * @param Parser initialized parser instance
  */
 void _mais_fatores(Parser* parser) {
