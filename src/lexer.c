@@ -83,8 +83,8 @@ int nextToken(Lexer* lexer, FILE* output) {
     _identifyTokenClass(lexer);
 
     if (lexer->tokenClass == ERROR) {
-        printf("Line %d Col %d -- '%s'\n%s\n", lexer->currLine, lexerCurrColWithoutRetreat(lexer), lexer->buffer.str, lexerErrorMessage(lexer->currState));
-        fprintf(output, "Line %d Col %d -- '%s'\n%s\n", lexer->currLine, lexerCurrColWithoutRetreat(lexer), lexer->buffer.str, lexerErrorMessage(lexer->currState));
+        printf("Lexer error on line %d col %d ('%s'): %s\n", lexer->currLine, lexerCurrColWithoutRetreat(lexer), lexer->buffer.str, lexerErrorMessage(lexer->currState));
+        fprintf(output, "Lexer error on line %d col %d ('%s'): %s\n", lexer->currLine, lexerCurrColWithoutRetreat(lexer), lexer->buffer.str, lexerErrorMessage(lexer->currState));
         return nextToken(lexer, output) + 1;
     } else if (lexer->tokenClass == EOF) {
         printf("EOF\n");
