@@ -4,7 +4,9 @@
  */
 #include "../header/vector.h"
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /**
  * @brief Allocates memory for string
@@ -53,11 +55,21 @@ void append(String* s, char c) {
         s->str[s->size++] = c;
         s->str[s->size] = '\0';
     } else {
-        s->capacity *= 2;  // doubles the capacity
-        s->str = (char*)realloc(s->str, s->capacity);
+        expand(s, s->capacity * 2);  // doubles the capacity
         s->str[s->size++] = c;
         s->str[s->size] = '\0';
     }
+}
+
+void appendStr(String* s, const char* cstr) {
+    for (size_t i = 0; i < strlen(cstr); i++)
+        append(s, cstr[i]);
+}
+
+void appendInt(String* s, int integer) {
+    static char cstrInt[12];  // INT_MIN is -2.147.483.648, so it fits in 12 bits (with signal)
+    sprintf(cstrInt, "%d", integer);
+    appendStr(s, cstrInt);
 }
 
 /**

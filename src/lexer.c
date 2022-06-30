@@ -12,19 +12,39 @@
  * @brief Builds structures needed for lexer operation.
  * @param lexer
  */
-void lexerInit(Lexer* lexer, FILE* sourceCode) {
+bool lexerInit(Lexer* lexer, const char* sourceFilePath) {
     lexer->currState = 0;
     lexer->currLine = 1;
     lexer->currCol = 1;
-    lexer->lastWasNumberOrIdent = false;
     lexer->tokenClass = 0;
+    lexer->lastWasNumberOrIdent = false;
     stringInit(&lexer->buffer);
-    lexer->sourceCode = sourceCode;
+
+    // open P-- source code file
+    lexer->sourceCode = fopen(sourceFilePath, "r");
+    if (lexer->sourceCode == NULL) {
+        printf("Error: no such file\n");
+        return true;
+    }
+
+    lexer->tokenOutput = fopen("tokenOutput.txt", "w");
+    if (lexer->sourceCode == NULL) {
+        printf("Error: couldn't create tokenOutput file\n");
+        return true;
+    }
 
     _buildTransitionMatrix(lexer->transitionMatrix);
     _buildFinalStates(lexer->finalState, lexer->finalStateClass);
     _buildProtectedSymbolMatrix(lexer->protectedSymbolMatrix);
     _buildProtectedSymbolFinalStates(lexer->protectedSymbolFinalStates);
+
+    return false;
+}
+
+void lexerDestroy(Lexer* lexer) {
+    fclose(lexer->sourceCode);
+    fclose(lexer->tokenOutput);
+    stringDestroy(&lexer->buffer);
 }
 
 /**
@@ -43,13 +63,12 @@ int nextToken(Lexer* lexer, FILE* output) {
     writeToString(&lexer->buffer, "", 0);
 
     while (!lexer->finalState[lexer->currState]) {  // while the automaton hasn't reached a final state
-        _nextChar(lexer);               // read char from file
 
+        _nextChar(lexer);  // read char from file
         if (lexer->fscanfFlag == EOF) {
             _dealWithEOF(lexer);
             return 0;
         }
-
         _nextState(lexer);
 
         // Only append to the buffer if:
@@ -64,13 +83,14 @@ int nextToken(Lexer* lexer, FILE* output) {
     _identifyTokenClass(lexer);
 
     if (lexer->tokenClass == ERROR) {
-        // Col count is incremented, just for showing purposes, in case there was a retreat
-        printf("Line %d Col %d -- '%s'\n%s\n", lexer->currLine, lexer->currCol + (lexer->finalStateClass[lexer->currState] < 0), lexer->buffer.str, _getLexerErrorMessage(lexer->currState));
-        fprintf(output, "Line %d Col %d -- '%s'\n%s\n", lexer->currLine, lexer->currCol + (lexer->finalStateClass[lexer->currState] < 0), lexer->buffer.str, _getLexerErrorMessage(lexer->currState));
+        printf("Line %d Col %d -- '%s'\n%s\n", lexer->currLine, lexerCurrColWithoutRetreat(lexer), lexer->buffer.str, lexerErrorMessage(lexer->currState));
+        fprintf(output, "Line %d Col %d -- '%s'\n%s\n", lexer->currLine, lexerCurrColWithoutRetreat(lexer), lexer->buffer.str, lexerErrorMessage(lexer->currState));
         return nextToken(lexer, output) + 1;
-    } else if (lexer->tokenClass == EOF){
+    } else if (lexer->tokenClass == EOF) {
         printf("EOF\n");
         fprintf(output, "EOF\n");
+    } else {
+        fprintf(lexer->tokenOutput, "%s, %s\n", lexer->buffer.str, lexerTokenClassName(lexer->tokenClass));
     }
     return 0;
 }
@@ -91,8 +111,8 @@ void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHA
             transitionMatrix[i][j] = -1;
 
     // IDENTIFIERS
-    _fillOther(transitionMatrix, 0, 3);
-    _fillOther(transitionMatrix, 1, 2);
+    _fillOther(transitionMatrix, 0, 3);  // invalid char
+    _fillOther(transitionMatrix, 1, 2);  // end of identifier
     transitionMatrix[0]['_'] = 1;
     transitionMatrix[1]['_'] = 1;
     for (int i = 'a'; i <= 'z'; i++) {
@@ -131,9 +151,9 @@ void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHA
     transitionMatrix[16]['>'] = 18;
     transitionMatrix[0]['>'] = 20;
     transitionMatrix[20]['='] = 22;
-    _fillOther(transitionMatrix, 13, 15);
-    _fillOther(transitionMatrix, 16, 19);
-    _fillOther(transitionMatrix, 20, 21);
+    _fillOther(transitionMatrix, 13, 15);  // : Declare type
+    _fillOther(transitionMatrix, 16, 19);  // < Relation
+    _fillOther(transitionMatrix, 20, 21);  // > Relation
 
     // MISCELLANEOUS
     transitionMatrix[0][' '] = 0;
@@ -146,7 +166,7 @@ void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHA
     transitionMatrix[0]['.'] = 28;
     transitionMatrix[0]['{'] = 30;
     transitionMatrix[30]['}'] = 0;
-    _fillOther(transitionMatrix, 30, 30);
+    _fillOther(transitionMatrix, COMMENT_STATE, COMMENT_STATE);  // comment
 }
 
 /**
@@ -274,7 +294,7 @@ void _nextChar(Lexer* lexer) {
     lexer->fscanfFlag = fscanf(lexer->sourceCode, "%c", &lexer->currChar);
     if (lexer->fscanfFlag != -1) {
         lexer->currLine += (lexer->currChar == '\n');
-        lexer->currCol = (lexer->currChar == '\n') ? 1 : lexer->currCol + 1 + (lexer->currChar == '\t')*3;
+        lexer->currCol = (lexer->currChar == '\n') ? 1 : lexer->currCol + 1 + (lexer->currChar == '\t') * 3;
     }
 }
 
@@ -324,7 +344,7 @@ void _identifyTokenClass(Lexer* lexer) {
         // retreat the file and the count
         fseek(lexer->sourceCode, -sizeof(char), SEEK_CUR);
         lexer->currLine -= (lexer->currChar == '\n');
-        lexer->currCol -= (lexer->currChar != '\n');
+        lexer->currCol -= (lexer->currChar != '\n') + (lexer->currChar == '\t') * 3;
         lexer->tokenClass = -1 * (lexer->tokenClass);
     }
     if (lexer->tokenClass == ID)
@@ -355,13 +375,34 @@ int _checkIfProtectedSymbol(Lexer* lexer) {
  * @param currState current automaton state
  * @return char* error description
  */
-char* _getLexerErrorMessage(int currState) {
-    static char* lexerErrorMessages[NUMBER_OF_STATES] = {"", "", "",
-                                                         "Error: Invalid character", "", "", "",
-                                                         "Error: did you mean to type a real number?", "", "", "", "", "",
-                                                         ""
-                                                         "",
-                                                         "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
-                                                         "Error: Unexpected end of file"};
+const char* lexerErrorMessage(int currState) {
+    static const char* lexerErrorMessages[NUMBER_OF_STATES] = {"", "", "",
+                                                               "Error: Invalid character", "", "", "",
+                                                               "Error: did you mean to type a real number?", "", "", "", "", "",
+                                                               ""
+                                                               "",
+                                                               "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+                                                               "Error: Unexpected end of file"};
     return lexerErrorMessages[currState];
+}
+
+/**
+ * @brief Returns token string to be used as output
+ *
+ * @param tokenClass token class number
+ * @return char* token class name
+ */
+const char* lexerTokenClassName(int tokenClass) {
+    // indexes token class names for user-friendly printing
+    static const char* tokenClassName[] = {"", "N_REAL", "N_INTEGER", "OP_UN", "OP_ADD", "OP_MULT", "RELATION",
+                                           "ASSIGN", "DECLARE_TYPE", "SEMICOLON", "COLON",
+                                           "OPEN_PAR", "CLOSE_PAR", "DOT", "ID", "BEGIN", "CONST",
+                                           "DO", "END", "ELSE", "IF", "INTEGER", "FOR", "PROGRAM", "PROCEDURE",
+                                           "REAL", "READ", "THEN", "TO", "VAR", "WRITE", "WHILE", "ERROR"};
+    return tokenClassName[tokenClass];
+}
+
+int lexerCurrColWithoutRetreat(Lexer* lexer) {
+    // Col count is incremented, just for showing purposes, in case there was a retreat
+    return lexer->currCol + (lexer->finalStateClass[lexer->currState] < 0);
 }

@@ -17,22 +17,18 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    // open P-- source code file
-    FILE* sourceCode = fopen(argv[1], "r");
-    if (sourceCode == NULL) {
-        printf("Error: no such file\n");
+    Parser parser;
+    if (parserInit(&parser, argv[1])) {
         return -1;
     }
-
-    // calls parser (syntax analyzer)
-    CompileRet compileRet = compile(sourceCode);
-    fclose(sourceCode);
+    compile(&parser);
 
     // print compiler status
-    if( compileRet.errorCount > 0 )
-        printf("Program compiled with %d errors\n", compileRet.errorCount);
-    else  if( compileRet.errorCount == 0 )
+    if (parser.errorCount > 0)
+        printf("Program compiled with %d errors\n", parser.errorCount);
+    else if (parser.errorCount == 0)
         printf("Program compiled successfully\n");
 
+    parserDestroy(&parser);
     return 0;
 }

@@ -8,6 +8,7 @@
 # Allow tests but disallow the output
 !*.txt
 output.txt
+tokenOutput.txt
 
 # Git files
 !.gitignore

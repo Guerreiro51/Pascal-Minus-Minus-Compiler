@@ -10,509 +10,375 @@
 
 #include "../header/vector.h"
 
-/**
- * @brief Controls the compilation process.
- *
- * @param sourceCode pointer to P-- source code file
- * @return int compiler termination status
- */
-CompileRet compile(FILE* sourceCode) {
-    // initializes a lexical analyser (lexer)
-    Lexer lexer;
-    lexerInit(&lexer, sourceCode);
+bool parserInit(Parser* parser, const char* sourceCodePath) {
+    parser->errorCount = 0;
 
-    // stores the last lexem read by the lexer
-    CompileRet compileRet;
-    compileRet.errorCount = 0;
+    if (lexerInit(&parser->lexer, sourceCodePath)) {
+        return true;
+    }
 
     // open output file
-    FILE* output = fopen( "output.txt", "w" );
-    if( output == NULL ){
-        printf("Error: couldn't open output file\n");
-        compileRet.errorCount = -1;
-        return compileRet;
+    parser->output = fopen("output.txt", "w");
+    if (parser->output == NULL) {
+        printf("Error: couldn't create output file\n");
+        return true;
     }
 
-    compileRet.errorCount += nextToken(&lexer, output);  // get next token
+    return false;
+}
 
-    // initial variable: programa
-    compileRet.errorCount += _programa(&lexer, output);
-
-    if( lexer.tokenClass != EOF ){
-        compileRet.errorCount++;
-        printf("Parser error on line %d col %d: expected EOF but found %s\n", lexer.currLine, lexer.currCol, lexer.buffer.str);
-    }
-    
-    stringDestroy(&lexer.buffer);
-    fclose(output);
-    return compileRet;
+void parserDestroy(Parser* parser) {
+    fclose(parser->output);
+    lexerDestroy(&parser->lexer);
 }
 
 /**
- * @brief 
- * 
+ * @brief Controls the compilation process.
  *
- * @param tokenClass token class number
- * @return char* token class name
+ * @param Parser initialized parser instance
  */
-char* _getTokenClassName(int tokenClass) {
-    // indexes token class names for user-friendly printing
-    static char* tokenClassName[] = {"", "N_REAL", "N_INTEGER", "OP_UN", "OP_ADD", "OP_MULT", "RELATION",
-                                     "ASSIGN", "DECLARE_TYPE", "SEMICOLON", "COLON",
-                                     "OPEN_PAR", "CLOSE_PAR", "DOT", "ID", "BEGIN", "CONST",
-                                     "DO", "END", "ELSE", "IF", "INTEGER", "FOR", "PROGRAM", "PROCEDURE",
-                                     "REAL", "READ", "THEN", "TO", "VAR", "WRITE", "WHILE", "ERROR"};
-    return tokenClassName[tokenClass];
+void compile(Parser* parser) {
+    parser->errorCount += nextToken(&parser->lexer, parser->output);  // get next token
+
+    // initial variable: programa
+    _programa(parser);
+
+    if (parser->lexer.tokenClass != EOF) {
+        _error(parser, EOF);
+    }
 }
 
 /**
  * @brief Implements rule 1 of the grammar:
  * <programa> ::= program ident ; <corpo> .
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _programa(Lexer* lexer, FILE* output){
-    int errorCount = 0;
-    if( lexer->tokenClass == PROGRAM ){
-        errorCount += nextToken(lexer, output); 
-        if( lexer->tokenClass == ID ){
-            errorCount += nextToken(lexer, output);   
-            if( lexer->tokenClass == SEMICOLON ){
-                errorCount += nextToken(lexer, output);
-                errorCount += _corpo(lexer, output);
-                if( lexer->tokenClass == DOT ){
-                    errorCount += nextToken(lexer, output);
-                    return errorCount;
+void _programa(Parser* parser) {
+    if (parser->lexer.tokenClass == PROGRAM) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        if (parser->lexer.tokenClass == ID) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+            if (parser->lexer.tokenClass == SEMICOLON) {
+                parser->errorCount += nextToken(&parser->lexer, parser->output);
+                _corpo(parser);
+                if (parser->lexer.tokenClass == DOT) {
+                    parser->errorCount += nextToken(&parser->lexer, parser->output);
+                } else {
+                    _error(parser, DOT);
                 }
-                else{
-                    printf("Parser error on line %d col %d: expected '.' but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-                }
+            } else {
+                _error(parser, SEMICOLON);
             }
-            else {
-                printf("Parser error on line %d col %d: expected ';' but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-            }
+        } else {
+            _error(parser, ID);
         }
-        else{
-            printf("Parser error on line %d col %d: expected ID but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-        }
+    } else {
+        _error(parser, PROGRAM);
     }
-    else{
-        printf("Parser error on line %d col %d: expected 'program' keyword but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-    }
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 2 of the grammar:
  * <corpo> ::= <dc> begin <comandos> end
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _corpo(Lexer* lexer, FILE* output){
-    
-    int errorCount = 0;
-    
-    errorCount += _dc(lexer, output);
-    if( lexer->tokenClass == BEGIN ){
-        errorCount += nextToken(lexer, output);
-        errorCount += _comandos(lexer, output);
-        if( lexer->tokenClass == END ){
-            errorCount += nextToken(lexer, output);
-            return errorCount;
-        }else{
-            printf("Parser error on line %d col %d: expected 'end' keyword but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
+void _corpo(Parser* parser) {
+    _dc(parser);
+    if (parser->lexer.tokenClass == BEGIN) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _comandos(parser);
+        if (parser->lexer.tokenClass == END) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+        } else {
+            _error(parser, END);
         }
+    } else {
+        _error(parser, BEGIN);
     }
-    else{
-        printf("Parser error on line %d col %d: expected 'begin' keyword but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-    }
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 3 of the grammar:
  * <dc> ::= <dc_c> <dc_v> <dc_p>
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _dc(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    errorCount += _dc_c(lexer, output);
-    errorCount += _dc_v(lexer, output);
-    errorCount += _dc_p(lexer, output);
-
-    return errorCount;
+void _dc(Parser* parser) {
+    _dc_c(parser);
+    _dc_v(parser);
+    _dc_p(parser);
 }
 
 /**
  * @brief Implements rule 4 of the grammar:
  * <dc_c> ::= const ident = <numero>  ; <dc_c> | lambda
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _dc_c(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == CONST) {
-        errorCount += nextToken(lexer, output);
-        if(lexer->tokenClass == ID) {
-            errorCount += nextToken(lexer, output);
-            if(lexer->tokenClass == ASSIGN) {
-                errorCount += nextToken(lexer, output);
-                errorCount += _numero(lexer, output);
-                if(lexer->tokenClass == SEMICOLON) {
-                    errorCount += nextToken(lexer, output);
-                    errorCount += _dc_c(lexer, output);
-                    return errorCount;
+void _dc_c(Parser* parser) {
+    if (parser->lexer.tokenClass == CONST) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        if (parser->lexer.tokenClass == ID) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+            if (parser->lexer.tokenClass == ASSIGN) {  // should be only '='
+                parser->errorCount += nextToken(&parser->lexer, parser->output);
+                _numero(parser);
+                if (parser->lexer.tokenClass == SEMICOLON) {
+                    parser->errorCount += nextToken(&parser->lexer, parser->output);
+                    _dc_c(parser);
+                } else {
+                    _error(parser, SEMICOLON);
                 }
-                else {
-                    printf("Parser error on line %d col %d: expected ';' but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-                }
+            } else {
+                _error(parser, ASSIGN);  // should be only '='
             }
-            else {
-                printf("Parser error on line %d col %d: expected ':=' but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-            }
-        }
-        else {
-            printf("Parser error on line %d col %d: expected ID but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
+        } else {
+            _error(parser, ID);
         }
     }
-    else{
-        return errorCount;
-    }
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 5 of the grammar:
  * <dc_v> ::= var <variaveis> : <tipo_var> ; <dc_v> | lambda
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _dc_v(Lexer* lexer, FILE* output){
-    int errorCount = 0;
-    if( lexer->tokenClass == VAR ){
-        errorCount += nextToken(lexer, output);
-        errorCount += _variaveis(lexer, output);
-        if( lexer->tokenClass == DECLARE_TYPE ){
-            errorCount += nextToken(lexer, output);
-            errorCount += _tipo_var(lexer, output);
-            if( lexer->tokenClass == SEMICOLON ){
-                errorCount += nextToken(lexer, output);
-                errorCount += _dc_v(lexer, output);
-                return errorCount;
+void _dc_v(Parser* parser) {
+    if (parser->lexer.tokenClass == VAR) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _variaveis(parser);
+        if (parser->lexer.tokenClass == DECLARE_TYPE) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+            _tipo_var(parser);
+            if (parser->lexer.tokenClass == SEMICOLON) {
+                parser->errorCount += nextToken(&parser->lexer, parser->output);
+                _dc_v(parser);
+            } else {
+                _error(parser, SEMICOLON);
             }
-            else{
-                printf("Parser error on line %d col %d: expected ';' but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-            }
-        }
-        else{
-            printf("Parser error on line %d col %d: expected ':' but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
+        } else {
+            _error(parser, DECLARE_TYPE);
         }
     }
-    else{
-        return errorCount;
-    }
-    return ++errorCount;
 }
-
 
 /**
  * @brief Implements rule 6 of the grammar:
  * <tipo_var> ::= real | integer
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _tipo_var(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == REAL || lexer->tokenClass == INTEGER) {
-        errorCount += nextToken(lexer, output);
-        return errorCount;
+void _tipo_var(Parser* parser) {
+    if (parser->lexer.tokenClass == REAL || parser->lexer.tokenClass == INTEGER) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        parser->errorCount++;
+        printf("Parser error on line %d col %d: expected real or integer but found %s\n", parser->lexer.currLine, lexerCurrColWithoutRetreat(&parser->lexer), parser->lexer.buffer.str);
     }
-
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 7 of the grammar:
  * <variaveis> ::= ident <mais_var>
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _variaveis(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == ID) {
-        errorCount += nextToken(lexer, output);
-        errorCount += _mais_var(lexer, output);
-        return errorCount;
+void _variaveis(Parser* parser) {
+    if (parser->lexer.tokenClass == ID) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _mais_var(parser);
+    } else {
+        _error(parser, ID);
     }
-    else {
-        printf("Parser error on line %d col %d: expected ID but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-    }
-
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 8 of the grammar:
  * <mais_var> ::= , <variaveis> | lambda
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _mais_var(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == COLON) {
-        errorCount += nextToken(lexer, output);
-        errorCount += _variaveis(lexer, output);
+void _mais_var(Parser* parser) {
+    if (parser->lexer.tokenClass == COLON) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _variaveis(parser);
     }
-    return errorCount;
 }
 
 /**
  * @brief Implements rule 9 of the grammar:
  * <dc_p> ::= procedure ident <parametros> ; <corpo_p> <dc_p> | lambda
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _dc_p(Lexer* lexer, FILE* output){
-    int errorCount = 0;
-    if( lexer->tokenClass == PROCEDURE ){
-        errorCount += nextToken(lexer, output);
-        if( lexer->tokenClass == ID ){
-            errorCount += nextToken(lexer, output);
-            errorCount += _parametros(lexer, output);
-            if( lexer->tokenClass == SEMICOLON ){
-                errorCount += nextToken(lexer, output);
-                errorCount += _dc_p(lexer, output);
-                return errorCount;
+void _dc_p(Parser* parser) {
+    if (parser->lexer.tokenClass == PROCEDURE) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        if (parser->lexer.tokenClass == ID) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+            _parametros(parser);
+            if (parser->lexer.tokenClass == SEMICOLON) {
+                parser->errorCount += nextToken(&parser->lexer, parser->output);
+                _corpo_p(parser);
+                _dc_p(parser);
+            } else {
+                _error(parser, SEMICOLON);
             }
-            else{
-                printf("Parser error on line %d col %d: expected ';' but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-            }
-        }
-        else{
-            printf("Parser error on line %d col %d: expected ID but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
+        } else {
+            _error(parser, ID);
         }
     }
-    else{
-        return errorCount;
-    }
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 10 of the grammar:
  * <parametros> ::= ( <lista_par> ) | λ
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _parametros(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == OPEN_PAR) {
-        errorCount += nextToken(lexer, output);
-        errorCount += _lista_par(lexer, output);
-        if(lexer->tokenClass == CLOSE_PAR) {
-            errorCount += nextToken(lexer, output);
-            return errorCount;
-        }
-        else {
-            printf("Parser error on line %d col %d: expected ')' keyword but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
+void _parametros(Parser* parser) {
+    if (parser->lexer.tokenClass == OPEN_PAR) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _lista_par(parser);
+        if (parser->lexer.tokenClass == CLOSE_PAR) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+        } else {
+            _error(parser, CLOSE_PAR);
         }
     }
-    else {
-        return errorCount;
-    }
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 11 of the grammar:
  * <lista_par> ::= <variaveis> : <tipo_var> <mais_par>
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _lista_par(Lexer* lexer, FILE* output){
-    int errorCount = 0;
-    errorCount += _variaveis(lexer, output);
-    if( lexer->tokenClass == DECLARE_TYPE ){
-        errorCount += nextToken(lexer, output);
-        errorCount += _tipo_var(lexer, output);
-        errorCount += _mais_par(lexer, output);
-        return errorCount;
+void _lista_par(Parser* parser) {
+    _variaveis(parser);
+    if (parser->lexer.tokenClass == DECLARE_TYPE) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _tipo_var(parser);
+        _mais_par(parser);
+    } else {
+        _error(parser, DECLARE_TYPE);
     }
-    else {
-        printf("Parser error on line %d col %d: expected ':' keyword but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-    }
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 12 of the grammar:
  * <mais_par> ::= ; <lista_par> | lambda
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _mais_par(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == SEMICOLON) {
-        errorCount += nextToken(lexer, output);
-        errorCount += _lista_par(lexer, output);
-        return errorCount;
+void _mais_par(Parser* parser) {
+    if (parser->lexer.tokenClass == SEMICOLON) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _lista_par(parser);
     }
-    else {
-        return errorCount;
-    }
-
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 13 of the grammar:
  * <corpo_p> ::= <dc_loc> begin <comandos> end ;
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _corpo_p(Lexer* lexer, FILE* output){
-    int errorCount = 0;
-    errorCount += _dc_loc(lexer, output);
-    if( lexer->tokenClass == BEGIN ){
-        errorCount += nextToken(lexer, output);
-        errorCount += _comandos(lexer, output);
-        if( lexer->tokenClass == END ){
-            errorCount += nextToken(lexer, output);
-            if( lexer->tokenClass == SEMICOLON ){
-                errorCount += nextToken(lexer, output);
-                return errorCount;
+void _corpo_p(Parser* parser) {
+    _dc_loc(parser);
+    if (parser->lexer.tokenClass == BEGIN) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _comandos(parser);
+        if (parser->lexer.tokenClass == END) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+            if (parser->lexer.tokenClass == SEMICOLON) {
+                parser->errorCount += nextToken(&parser->lexer, parser->output);
+            } else {
+                _error(parser, SEMICOLON);
             }
-            else {
-                printf("Parser error on line %d col %d: expected ';' but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-            }
+        } else {
+            _error(parser, END);
         }
-        else{
-            printf("Parser error on line %d col %d: expected 'end' keyword but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-        }
-    }
-    else {
-        printf("Parser error on line %d col %d: expected 'begin' keyword but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
+    } else {
+        _error(parser, BEGIN);
     }
 }
 
 /**
  * @brief Implements rule 14 of the grammar:
  * <dc_loc> ::= <dc_v>
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _dc_loc(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    errorCount += _dc_v(lexer, output);
-
-    return errorCount;
+void _dc_loc(Parser* parser) {
+    _dc_v(parser);
 }
 
 /**
  * @brief Implements rule 15 of the grammar:
  * <lista_arg> ::= ( <argumentos> ) | lambda
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _lista_arg(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == OPEN_PAR) {
-        errorCount += nextToken(lexer, output);
-        errorCount += _argumentos(lexer, output);
-        if(lexer->tokenClass == CLOSE_PAR) {
-            errorCount += nextToken(lexer, output);
-            return errorCount;
-        }
-        else {
-            printf("Parser error on line %d col %d: expected ')' keyword but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
+void _lista_arg(Parser* parser) {
+    if (parser->lexer.tokenClass == OPEN_PAR) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _argumentos(parser);
+        if (parser->lexer.tokenClass == CLOSE_PAR) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+        } else {
+            _error(parser, CLOSE_PAR);
         }
     }
-    else {
-        return errorCount;
-    }
-    return ++errorCount;
 }
-
 
 /**
  * @brief Implements rule 16 of the grammar:
  * <argumentos> ::= ident <mais_ident>
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _argumentos(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == ID) {
-        errorCount += _mais_ident(lexer, output);
-        return errorCount;
+void _argumentos(Parser* parser) {
+    if (parser->lexer.tokenClass == ID) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _mais_ident(parser);
+    } else {
+        _error(parser, ID);
     }
-    else {
-        printf("Parser error on line %d col %d: expected ID but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-    }
-
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 17 of the grammar:
  * <mais_ident> ::= ; <argumentos> | λ
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _mais_ident(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == SEMICOLON) {
-        errorCount += nextToken(lexer, output);
-        errorCount += _argumentos(lexer, output);
+void _mais_ident(Parser* parser) {
+    if (parser->lexer.tokenClass == SEMICOLON) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _argumentos(parser);
     }
-    return errorCount;
 }
-
 
 /**
  * @brief Implements rule 18 of the grammar:
  * <pfalsa> ::= else <cmd> | lambda
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _pfalsa(Lexer* lexer, FILE* output){
-    int errorCount = 0;
-    if( lexer->tokenClass == ELSE ){
-        errorCount += nextToken(lexer, output);
-        errorCount += _cmd(lexer, output);
+void _pfalsa(Parser* parser) {
+    if (parser->lexer.tokenClass == ELSE) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _cmd(parser);
     }
-    return errorCount;
 }
 
 /**
  * @brief Implements rule 19 of the grammar:
  * <comandos> ::= <cmd> ; <comandos> | λ
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _comandos(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if (lexer->tokenClass == READ   ||
-        lexer->tokenClass == WRITE  ||
-        lexer->tokenClass == WHILE  ||
-        lexer->tokenClass == IF     ||
-        lexer->tokenClass == FOR    ||
-        lexer->tokenClass == ID     ||
-        lexer->tokenClass == BEGIN) {
-        errorCount += _cmd(lexer, output);
-        if(lexer->tokenClass == SEMICOLON) {
-            errorCount += nextToken(lexer, output);
-            errorCount += _comandos(lexer, output);
-            return errorCount;
+void _comandos(Parser* parser) {
+    if (parser->lexer.tokenClass == READ ||
+        parser->lexer.tokenClass == WRITE ||
+        parser->lexer.tokenClass == WHILE ||
+        parser->lexer.tokenClass == IF ||
+        parser->lexer.tokenClass == FOR ||
+        parser->lexer.tokenClass == ID ||
+        parser->lexer.tokenClass == BEGIN) {
+        _cmd(parser);
+        if (parser->lexer.tokenClass == SEMICOLON) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+            _comandos(parser);
         } else {
-            printf("Parser error on line %d col %d: expected ';' keyword but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
+            _error(parser, SEMICOLON);
         }
     }
-    else
-        return errorCount;
-    
-    return ++errorCount;
 }
 
 /**
@@ -524,303 +390,252 @@ int _comandos(Lexer* lexer, FILE* output) {
             for ident := <expressão> to <expressão> do <cmd>
             ident <pos_ident> |
             begin <comandos> end
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _cmd(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == READ) {
-        errorCount += nextToken(lexer, output);
-        if(lexer->tokenClass == OPEN_PAR) {
-            errorCount += nextToken(lexer, output);
-            errorCount += _variaveis(lexer, output);
-            if(lexer->tokenClass == CLOSE_PAR) {
-                errorCount += nextToken(lexer, output);
-                return errorCount;
+void _cmd(Parser* parser) {
+    if (parser->lexer.tokenClass == READ) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        if (parser->lexer.tokenClass == OPEN_PAR) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+            _variaveis(parser);
+            if (parser->lexer.tokenClass == CLOSE_PAR) {
+                parser->errorCount += nextToken(&parser->lexer, parser->output);
             }
         }
-    }
-    else if(lexer->tokenClass == WRITE) {
-        errorCount += nextToken(lexer, output);
-        if(lexer->tokenClass == OPEN_PAR) {
-            errorCount += nextToken(lexer, output);
-            errorCount += _variaveis(lexer, output);
-            if(lexer->tokenClass == CLOSE_PAR) {
-                errorCount += nextToken(lexer, output);
-                return errorCount;
+    } else if (parser->lexer.tokenClass == WRITE) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        if (parser->lexer.tokenClass == OPEN_PAR) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+            _variaveis(parser);
+            if (parser->lexer.tokenClass == CLOSE_PAR) {
+                parser->errorCount += nextToken(&parser->lexer, parser->output);
             }
         }
-    }
-    else if(lexer->tokenClass == WHILE) {
-        errorCount += nextToken(lexer, output);
-        if(lexer->tokenClass == OPEN_PAR) {
-            errorCount += nextToken(lexer, output);
-            errorCount += _condicao(lexer, output);
-            if(lexer->tokenClass == CLOSE_PAR) {
-                errorCount += nextToken(lexer, output);
-                if(lexer->tokenClass == DO) {
-                    errorCount += nextToken(lexer, output);
-                    errorCount += _cmd(lexer, output);
-                    return errorCount;
+    } else if (parser->lexer.tokenClass == WHILE) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        if (parser->lexer.tokenClass == OPEN_PAR) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+            _condicao(parser);
+            if (parser->lexer.tokenClass == CLOSE_PAR) {
+                parser->errorCount += nextToken(&parser->lexer, parser->output);
+                if (parser->lexer.tokenClass == DO) {
+                    parser->errorCount += nextToken(&parser->lexer, parser->output);
+                    _cmd(parser);
                 }
             }
         }
-    }
-    else if(lexer->tokenClass == IF) {
-        errorCount += nextToken(lexer, output);
-        errorCount += _condicao(lexer, output);
-        if(lexer->tokenClass == THEN) {
-            errorCount += nextToken(lexer, output);
-            errorCount += _cmd(lexer, output);
-            errorCount += _pfalsa(lexer, output);
-            return errorCount;
+    } else if (parser->lexer.tokenClass == IF) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _condicao(parser);
+        if (parser->lexer.tokenClass == THEN) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+            _cmd(parser);
+            _pfalsa(parser);
         }
-    }
-    else if(lexer->tokenClass == FOR) {
-        errorCount += nextToken(lexer, output);
-        if(lexer->tokenClass ==  ID) {
-            errorCount += nextToken(lexer, output);
-            if(lexer->tokenClass == ASSIGN) {
-                errorCount += nextToken(lexer, output);
-                errorCount += _expressao(lexer, output);
-                if(lexer->tokenClass == TO) {
-                    errorCount += nextToken(lexer, output);
-                    errorCount += _expressao(lexer, output);
-                    if(lexer->tokenClass == DO) {
-                        errorCount += nextToken(lexer, output);
-                        errorCount += _cmd(lexer, output);
-                        return errorCount;
+    } else if (parser->lexer.tokenClass == FOR) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        if (parser->lexer.tokenClass == ID) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+            if (parser->lexer.tokenClass == ASSIGN) {
+                parser->errorCount += nextToken(&parser->lexer, parser->output);
+                _expressao(parser);
+                if (parser->lexer.tokenClass == TO) {
+                    parser->errorCount += nextToken(&parser->lexer, parser->output);
+                    _expressao(parser);
+                    if (parser->lexer.tokenClass == DO) {
+                        parser->errorCount += nextToken(&parser->lexer, parser->output);
+                        _cmd(parser);
                     }
                 }
             }
         }
-    }
-    else if(lexer->tokenClass == ID) {
-        errorCount += nextToken(lexer, output);
-        errorCount += _pos_ident(lexer, output);
-        return errorCount;
-    }
-    else if(lexer->tokenClass == BEGIN) {
-        errorCount += nextToken(lexer, output);
-        errorCount += _comandos(lexer, output);
-        if(lexer->tokenClass == END) {
-            errorCount += nextToken(lexer, output);
-            return errorCount;
+    } else if (parser->lexer.tokenClass == ID) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _pos_ident(parser);
+    } else if (parser->lexer.tokenClass == BEGIN) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _comandos(parser);
+        if (parser->lexer.tokenClass == END) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
         }
+    } else {
+        _error(parser, SEMICOLON);
     }
-    else {
-        printf("Parser error on line %d col %d: invalid command\n", lexer->currLine, lexer->currCol);
-    }
-
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 20.1 of the grammar:
  * <pos_ident> ::= := <expressao> | <lista_arg>
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _pos_ident(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == ASSIGN){
-        errorCount += nextToken(lexer, output);
-        errorCount += _expressao(lexer, output);
+void _pos_ident(Parser* parser) {
+    if (parser->lexer.tokenClass == ASSIGN) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _expressao(parser);
+    } else {
+        _lista_arg(parser);
     }
-    else{
-        errorCount += _lista_arg(lexer, output);
-    }
-    
-    return errorCount;
 }
 
 /**
  * @brief Implements rule 21 of the grammar:
  * <condicao> ::= <expressao> <relacao> <expressao>
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _condicao(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    errorCount += _expressao(lexer, output);
-    errorCount += _relacao(lexer, output);
-    errorCount += _expressao(lexer, output);
-    
-    return errorCount;
+void _condicao(Parser* parser) {
+    _expressao(parser);
+    _relacao(parser);
+    _expressao(parser);
 }
 
 /**
  * @brief Implements rule 22 of the grammar:
  * <relacao> ::= = | <> | >= | <= | > | <
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _relacao(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if( lexer->tokenClass == RELATION ){
-        errorCount += nextToken(lexer, output);
-        return errorCount;
+void _relacao(Parser* parser) {
+    if (parser->lexer.tokenClass == RELATION) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, RELATION);
     }
-    else{
-        printf("Parser error on line %d col %d: expected '=', '<>', '>=', '<=', '>', '<' but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-    }
-
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 23 of the grammar:
  * <expressao> ::= <termo> <outros_termos>
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _expressao(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    errorCount += _termo(lexer, output);
-    errorCount += _outros_termos(lexer, output);
-    return errorCount;
+void _expressao(Parser* parser) {
+    _termo(parser);
+    _outros_termos(parser);
 }
 
 /**
  * @brief Implements rule 24 of the grammar:
  * <op_un> ::= + | - | lambda
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _op_un(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == OP_UN) {
-        errorCount += nextToken(lexer, output);
+void _op_un(Parser* parser) {
+    if (parser->lexer.tokenClass == OP_UN) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
     }
-    return errorCount;
 }
 
 /**
  * @brief Implements rule 25 of the grammar:
  * <outros_termos> ::= <op_ad> <termo> <outros_termos> | lambda
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _outros_termos(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == OP_ADD) {
-        errorCount += _op_ad(lexer, output);
-        errorCount += _termo(lexer, output);
-        errorCount += _outros_termos(lexer, output);
+void _outros_termos(Parser* parser) {
+    if (parser->lexer.tokenClass == OP_ADD) {
+        _op_ad(parser);
+        _termo(parser);
+        _outros_termos(parser);
     }
-    return errorCount;
 }
 
 /**
  * @brief Implements rule 26 of the grammar:
  * <op_ad> ::= + | -
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _op_ad(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == OP_ADD) {
-        errorCount += nextToken(lexer, output);
-        return errorCount;
+void _op_ad(Parser* parser) {
+    if (parser->lexer.tokenClass == OP_ADD) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, OP_ADD);
     }
-    else {
-        printf("Parser error on line %d col %d: expected '+' or '-' but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-    }
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 27 of the grammar:
  * <termo> ::= <op_un> <fator> <mais_fatores>
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _termo(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    errorCount += _op_un(lexer, output);
-    errorCount += _fator(lexer, output);
-    errorCount += _mais_fatores(lexer, output);
-    return errorCount;
+void _termo(Parser* parser) {
+    _op_un(parser);
+    _fator(parser);
+    _mais_fatores(parser);
 }
 
 /**
  * @brief Implements rule 28 of the grammar:
  * <mais_fatores> ::= <op_mul> <fator> <mais_fatores> | λ
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _mais_fatores(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == OP_MULT) {
-        errorCount += _op_mul(lexer, output);
-        errorCount += _fator(lexer, output);
-        errorCount += _mais_fatores(lexer, output);
+void _mais_fatores(Parser* parser) {
+    if (parser->lexer.tokenClass == OP_MULT) {
+        _op_mul(parser);
+        _fator(parser);
+        _mais_fatores(parser);
     }
-    return errorCount;
 }
-    
 
 /**
  * @brief Implements rule 29 of the grammar:
  * <op_mul> ::= *|/
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _op_mul(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == OP_MULT) {
-        errorCount += nextToken(lexer, output);
-        return errorCount;
+void _op_mul(Parser* parser) {
+    if (parser->lexer.tokenClass == OP_MULT) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, OP_MULT);
     }
-    else {
-        printf("Parser error on line %d col %d: expected '*' or '/' but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-    }
-    return ++errorCount;
 }
 
 /**
  * @brief Implements rule 30 of the grammar:
  * <fator> ::= ident | <numero> | (<expressao>)
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _fator(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == ID){
-        errorCount += nextToken(lexer, output);
-        return errorCount;
-    }
-    else if(lexer->tokenClass == OPEN_PAR){
-        errorCount += nextToken(lexer, output);
-        errorCount += _expressao(lexer, output);
-        if(lexer->tokenClass == CLOSE_PAR){
-            errorCount += nextToken(lexer, output);
-            return errorCount;
+void _fator(Parser* parser) {
+    if (parser->lexer.tokenClass == ID) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else if (parser->lexer.tokenClass == OPEN_PAR) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _expressao(parser);
+        if (parser->lexer.tokenClass == CLOSE_PAR) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+        } else {
+            _error(parser, CLOSE_PAR);
         }
-        else {
-            printf("Parser error on line %d col %d: expected ')' keyword but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-        }
+    } else {
+        _numero(parser);
     }
-    else {
-        errorCount += _numero(lexer, output);
-    }
-    return errorCount;
 }
 
 /**
  * @brief Implements rule 31 of the grammar:
  * <numero> ::= numero_int | numero_real
- * @param lexer lexer instance
- * @param output output file pointer
+ * @param Parser initialized parser instance
  */
-int _numero(Lexer* lexer, FILE* output) {
-    int errorCount = 0;
-    if(lexer->tokenClass == N_INTEGER || lexer->tokenClass == N_REAL) {
-        errorCount += nextToken(lexer, output);
-        return errorCount;
+void _numero(Parser* parser) {
+    if (parser->lexer.tokenClass == N_INTEGER || parser->lexer.tokenClass == N_REAL) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        parser->errorCount++;
+        printf("Parser error on line %d col %d: expected N_INTEGER or N_REAL but found %s\n", parser->lexer.currLine, lexerCurrColWithoutRetreat(&parser->lexer), parser->lexer.buffer.str);
     }
-    else {
-        printf("Parser error on line %d col %d: expected N_INTEGER or N_REAL keyword but found %s\n", lexer->currLine, lexer->currCol, lexer->buffer.str);
-    }
-    return ++errorCount;
+}
+
+void _error(Parser* parser, int expectedTokenClass) {
+    parser->errorCount++;
+
+    String errorMsg;
+    stringInit(&errorMsg);
+    appendStr(&errorMsg, "Parser error on line ");
+    appendInt(&errorMsg, parser->lexer.currLine);
+    appendStr(&errorMsg, " col ");
+    appendInt(&errorMsg, lexerCurrColWithoutRetreat(&parser->lexer));
+    appendStr(&errorMsg, ": expected ");
+    appendStr(&errorMsg, lexerTokenClassName(expectedTokenClass));
+    appendStr(&errorMsg, " but found ");
+    appendStr(&errorMsg, parser->lexer.buffer.str);
+    append(&errorMsg, '\n');
+    printf("%s", errorMsg.str);
+    fprintf(parser->output, "%s", errorMsg.str);
+
+    stringDestroy(&errorMsg);
 }

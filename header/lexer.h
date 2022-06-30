@@ -31,6 +31,7 @@ enum TOKEN_CLASS {  N_REAL = 1, N_INTEGER, OP_UN, OP_ADD, OP_MULT, RELATION,
 typedef struct {
     String buffer;
     FILE* sourceCode;
+    FILE* tokenOutput;
     int tokenClass;
 
     int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS];  // automaton transition matrix
@@ -50,8 +51,13 @@ typedef struct {
     bool lastWasNumberOrIdent;  // indicates whether the last token was a number or identifier
 } Lexer;
 
-void lexerInit(Lexer* lexer, FILE* sourceCode);                                                     // lexer initialization
+bool lexerInit(Lexer* lexer, const char* sourceFilePath);
+void lexerDestroy(Lexer* lexer);
 int nextToken(Lexer* lexer, FILE* output);  // gets next token
+
+int lexerCurrColWithoutRetreat(Lexer* lexer);
+const char* lexerErrorMessage(int currState);      // return error description given current automaton state
+const char* lexerTokenClassName(int token_class);  // returns token class name given token class number
 
 // auxiliary functions called on lexer initialization to build some necessary structures
 void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS]);
@@ -69,7 +75,5 @@ void _dealWithEOF(Lexer* lexer);
 void _nextState(Lexer* lexer);
 void _identifyTokenClass(Lexer* lexer);
 int _checkIfProtectedSymbol(Lexer* lexer);
-
-char* _getLexerErrorMessage(int currState);  // return error description given current automaton state
 
 #endif  // LEXER_H

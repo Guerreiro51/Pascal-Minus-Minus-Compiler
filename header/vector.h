@@ -14,6 +14,8 @@ typedef struct {
 void stringInit(String* s);                                  // initializes a string
 void stringDestroy(String* s);                               // clears memory
 void append(String* s, char c);                              // appends to string
+void appendStr(String* s, const char* cstr);
+void appendInt(String* s, int integer);
 void writeToString(String* s, const char cstr[], int size);  // overwrites string
 void _expand(String* s, unsigned long newCapacity);          // increase pointer capacity
 
