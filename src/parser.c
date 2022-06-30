@@ -168,7 +168,7 @@ void _dc_v(Parser* parser) {
 void _tipo_var(Parser* parser) {
     if (parser->lexer.tokenClass == REAL || parser->lexer.tokenClass == INTEGER) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-    } else {
+    } else {  // change
         parser->errorCount++;
         printf("Parser error on line %d col %d: expected real or integer but found %s\n", parser->lexer.currLine, lexerCurrColWithoutRetreat(&parser->lexer), parser->lexer.buffer.str);
     }
@@ -400,7 +400,11 @@ void _cmd(Parser* parser) {
             _variaveis(parser);
             if (parser->lexer.tokenClass == CLOSE_PAR) {
                 parser->errorCount += nextToken(&parser->lexer, parser->output);
+            } else {
+                _error(parser, CLOSE_PAR);
             }
+        } else {
+            _error(parser, OPEN_PAR);
         }
     } else if (parser->lexer.tokenClass == WRITE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
@@ -409,7 +413,11 @@ void _cmd(Parser* parser) {
             _variaveis(parser);
             if (parser->lexer.tokenClass == CLOSE_PAR) {
                 parser->errorCount += nextToken(&parser->lexer, parser->output);
+            } else {
+                _error(parser, CLOSE_PAR);
             }
+        } else {
+            _error(parser, OPEN_PAR);
         }
     } else if (parser->lexer.tokenClass == WHILE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
@@ -421,8 +429,14 @@ void _cmd(Parser* parser) {
                 if (parser->lexer.tokenClass == DO) {
                     parser->errorCount += nextToken(&parser->lexer, parser->output);
                     _cmd(parser);
+                } else {
+                    _error(parser, DO);
                 }
+            } else {
+                _error(parser, CLOSE_PAR);
             }
+        } else {
+            _error(parser, OPEN_PAR);
         }
     } else if (parser->lexer.tokenClass == IF) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
@@ -431,6 +445,8 @@ void _cmd(Parser* parser) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
             _cmd(parser);
             _pfalsa(parser);
+        } else {
+            _error(parser, THEN);
         }
     } else if (parser->lexer.tokenClass == FOR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
@@ -445,9 +461,17 @@ void _cmd(Parser* parser) {
                     if (parser->lexer.tokenClass == DO) {
                         parser->errorCount += nextToken(&parser->lexer, parser->output);
                         _cmd(parser);
+                    } else {
+                        _error(parser, DO);
                     }
+                } else {
+                    _error(parser, TO);
                 }
+            } else {
+                _error(parser, ASSIGN);
             }
+        } else {
+            _error(parser, ID);
         }
     } else if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
@@ -457,9 +481,11 @@ void _cmd(Parser* parser) {
         _comandos(parser);
         if (parser->lexer.tokenClass == END) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
+        } else {
+            _error(parser, END);
         }
     } else {
-        _error(parser, SEMICOLON);
+        _error(parser, SEMICOLON);  // change
     }
 }
 
@@ -614,7 +640,7 @@ void _fator(Parser* parser) {
 void _numero(Parser* parser) {
     if (parser->lexer.tokenClass == N_INTEGER || parser->lexer.tokenClass == N_REAL) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-    } else {
+    } else {  // change
         parser->errorCount++;
         printf("Parser error on line %d col %d: expected N_INTEGER or N_REAL but found %s\n", parser->lexer.currLine, lexerCurrColWithoutRetreat(&parser->lexer), parser->lexer.buffer.str);
     }
