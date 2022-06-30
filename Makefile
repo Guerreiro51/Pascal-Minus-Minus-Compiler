@@ -64,7 +64,7 @@ run:
 .PHONY: clean
 
 clean:
-	@ rm -rf ./$(ODIR)/*.o ./$(ODIR) $(PROJ_NAME)
+	@ rm -rf ./$(ODIR)/*.o ./$(ODIR) $(PROJ_NAME) output.txt tokenOutput.txt
 
 .PHONY: valgrind
 valgrind:
