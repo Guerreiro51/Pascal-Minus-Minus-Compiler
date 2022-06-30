@@ -662,7 +662,7 @@ void _numero(Parser* parser) {
 }
 
 /**
- * @brief Outputs a parser error given a expected token class
+ * @brief Outputs a parser error given an expected token class
  * 
  * @param parser initialized parser instance
  * @param expectedTokenClass expected token class
