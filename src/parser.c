@@ -48,7 +48,7 @@ void parserDestroy(Parser* parser) {
 /**
  * @brief Controls the compilation process.
  *
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void compile(Parser* parser) {
     // get first token
@@ -66,7 +66,7 @@ void compile(Parser* parser) {
 /**
  * @brief Implements rule 1 of the grammar:
  * <programa> ::= program ident ; <corpo> .
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _programa(Parser* parser) {
     if (parser->lexer.tokenClass == PROGRAM) {
@@ -95,7 +95,7 @@ void _programa(Parser* parser) {
 /**
  * @brief Implements rule 2 of the grammar:
  * <corpo> ::= <dc> begin <comandos> end
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _corpo(Parser* parser) {
     _dc(parser);
@@ -115,7 +115,7 @@ void _corpo(Parser* parser) {
 /**
  * @brief Implements rule 3 of the grammar:
  * <dc> ::= <dc_c> <dc_v> <dc_p>
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _dc(Parser* parser) {
     _dc_c(parser);
@@ -126,7 +126,7 @@ void _dc(Parser* parser) {
 /**
  * @brief Implements rule 4 of the grammar:
  * <dc_c> ::= const ident = <numero>  ; <dc_c> | lambda
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _dc_c(Parser* parser) {
     if (parser->lexer.tokenClass == CONST) {
@@ -154,7 +154,7 @@ void _dc_c(Parser* parser) {
 /**
  * @brief Implements rule 5 of the grammar:
  * <dc_v> ::= var <variaveis> : <tipo_var> ; <dc_v> | lambda
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _dc_v(Parser* parser) {
     if (parser->lexer.tokenClass == VAR) {
@@ -178,7 +178,7 @@ void _dc_v(Parser* parser) {
 /**
  * @brief Implements rule 6 of the grammar:
  * <tipo_var> ::= real | integer
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _tipo_var(Parser* parser) {
     if (parser->lexer.tokenClass == REAL || parser->lexer.tokenClass == INTEGER) {
@@ -192,7 +192,7 @@ void _tipo_var(Parser* parser) {
 /**
  * @brief Implements rule 7 of the grammar:
  * <variaveis> ::= ident <mais_var>
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _variaveis(Parser* parser) {
     if (parser->lexer.tokenClass == ID) {
@@ -206,7 +206,7 @@ void _variaveis(Parser* parser) {
 /**
  * @brief Implements rule 8 of the grammar:
  * <mais_var> ::= , <variaveis> | lambda
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _mais_var(Parser* parser) {
     if (parser->lexer.tokenClass == COLON) {
@@ -218,7 +218,7 @@ void _mais_var(Parser* parser) {
 /**
  * @brief Implements rule 9 of the grammar:
  * <dc_p> ::= procedure ident <parametros> ; <corpo_p> <dc_p> | lambda
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _dc_p(Parser* parser) {
     if (parser->lexer.tokenClass == PROCEDURE) {
@@ -242,7 +242,7 @@ void _dc_p(Parser* parser) {
 /**
  * @brief Implements rule 10 of the grammar:
  * <parametros> ::= ( <lista_par> ) | lambda
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _parametros(Parser* parser) {
     if (parser->lexer.tokenClass == OPEN_PAR) {
@@ -259,7 +259,7 @@ void _parametros(Parser* parser) {
 /**
  * @brief Implements rule 11 of the grammar:
  * <lista_par> ::= <variaveis> : <tipo_var> <mais_par>
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _lista_par(Parser* parser) {
     _variaveis(parser);
@@ -275,7 +275,7 @@ void _lista_par(Parser* parser) {
 /**
  * @brief Implements rule 12 of the grammar:
  * <mais_par> ::= ; <lista_par> | lambda
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _mais_par(Parser* parser) {
     if (parser->lexer.tokenClass == SEMICOLON) {
@@ -287,7 +287,7 @@ void _mais_par(Parser* parser) {
 /**
  * @brief Implements rule 13 of the grammar:
  * <corpo_p> ::= <dc_loc> begin <comandos> end ;
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _corpo_p(Parser* parser) {
     _dc_loc(parser);
@@ -312,7 +312,7 @@ void _corpo_p(Parser* parser) {
 /**
  * @brief Implements rule 14 of the grammar:
  * <dc_loc> ::= <dc_v>
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _dc_loc(Parser* parser) {
     _dc_v(parser);
@@ -321,7 +321,7 @@ void _dc_loc(Parser* parser) {
 /**
  * @brief Implements rule 15 of the grammar:
  * <lista_arg> ::= ( <argumentos> ) | lambda
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _lista_arg(Parser* parser) {
     if (parser->lexer.tokenClass == OPEN_PAR) {
@@ -338,7 +338,7 @@ void _lista_arg(Parser* parser) {
 /**
  * @brief Implements rule 16 of the grammar:
  * <argumentos> ::= ident <mais_ident>
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _argumentos(Parser* parser) {
     if (parser->lexer.tokenClass == ID) {
@@ -352,7 +352,7 @@ void _argumentos(Parser* parser) {
 /**
  * @brief Implements rule 17 of the grammar:
  * <mais_ident> ::= ; <argumentos> | lambda
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _mais_ident(Parser* parser) {
     if (parser->lexer.tokenClass == SEMICOLON) {
@@ -364,7 +364,7 @@ void _mais_ident(Parser* parser) {
 /**
  * @brief Implements rule 18 of the grammar:
  * <pfalsa> ::= else <cmd> | lambda
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _pfalsa(Parser* parser) {
     if (parser->lexer.tokenClass == ELSE) {
@@ -376,7 +376,7 @@ void _pfalsa(Parser* parser) {
 /**
  * @brief Implements rule 19 of the grammar:
  * <comandos> ::= <cmd> ; <comandos> | lambda
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _comandos(Parser* parser) {
     if (parser->lexer.tokenClass == READ ||
@@ -405,7 +405,7 @@ void _comandos(Parser* parser) {
             for ident := <expressão> to <expressão> do <cmd>
             ident <pos_ident> |
             begin <comandos> end
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _cmd(Parser* parser) {
     if (parser->lexer.tokenClass == READ) {
@@ -507,7 +507,7 @@ void _cmd(Parser* parser) {
 /**
  * @brief Implements rule 20.1 of the grammar:
  * <pos_ident> ::= := <expressao> | <lista_arg>
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _pos_ident(Parser* parser) {
     if (parser->lexer.tokenClass == ASSIGN) {
@@ -521,7 +521,7 @@ void _pos_ident(Parser* parser) {
 /**
  * @brief Implements rule 21 of the grammar:
  * <condicao> ::= <expressao> <relacao> <expressao>
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _condicao(Parser* parser) {
     _expressao(parser);
@@ -532,7 +532,7 @@ void _condicao(Parser* parser) {
 /**
  * @brief Implements rule 22 of the grammar:
  * <relacao> ::= = | <> | >= | <= | > | <
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _relacao(Parser* parser) {
     if (parser->lexer.tokenClass == RELATION) {
@@ -545,7 +545,7 @@ void _relacao(Parser* parser) {
 /**
  * @brief Implements rule 23 of the grammar:
  * <expressao> ::= <termo> <outros_termos>
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _expressao(Parser* parser) {
     _termo(parser);
@@ -555,7 +555,7 @@ void _expressao(Parser* parser) {
 /**
  * @brief Implements rule 24 of the grammar:
  * <op_un> ::= + | - | lambda
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _op_un(Parser* parser) {
     if (parser->lexer.tokenClass == OP_UN) {
@@ -566,7 +566,7 @@ void _op_un(Parser* parser) {
 /**
  * @brief Implements rule 25 of the grammar:
  * <outros_termos> ::= <op_ad> <termo> <outros_termos> | lambda
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _outros_termos(Parser* parser) {
     if (parser->lexer.tokenClass == OP_ADD) {
@@ -579,7 +579,7 @@ void _outros_termos(Parser* parser) {
 /**
  * @brief Implements rule 26 of the grammar:
  * <op_ad> ::= + | -
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _op_ad(Parser* parser) {
     if (parser->lexer.tokenClass == OP_ADD) {
@@ -592,7 +592,7 @@ void _op_ad(Parser* parser) {
 /**
  * @brief Implements rule 27 of the grammar:
  * <termo> ::= <op_un> <fator> <mais_fatores>
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _termo(Parser* parser) {
     _op_un(parser);
@@ -603,7 +603,7 @@ void _termo(Parser* parser) {
 /**
  * @brief Implements rule 28 of the grammar:
  * <mais_fatores> ::= <op_mul> <fator> <mais_fatores> | lambda
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _mais_fatores(Parser* parser) {
     if (parser->lexer.tokenClass == OP_MULT) {
@@ -616,7 +616,7 @@ void _mais_fatores(Parser* parser) {
 /**
  * @brief Implements rule 29 of the grammar:
  * <op_mul> ::= *|/
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _op_mul(Parser* parser) {
     if (parser->lexer.tokenClass == OP_MULT) {
@@ -629,7 +629,7 @@ void _op_mul(Parser* parser) {
 /**
  * @brief Implements rule 30 of the grammar:
  * <fator> ::= ident | <numero> | (<expressao>)
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _fator(Parser* parser) {
     if (parser->lexer.tokenClass == ID) {
@@ -650,7 +650,7 @@ void _fator(Parser* parser) {
 /**
  * @brief Implements rule 31 of the grammar:
  * <numero> ::= numero_int | numero_real
- * @param Parser initialized parser instance
+ * @param parser initialized parser instance
  */
 void _numero(Parser* parser) {
     if (parser->lexer.tokenClass == N_INTEGER || parser->lexer.tokenClass == N_REAL) {
@@ -661,6 +661,12 @@ void _numero(Parser* parser) {
     }
 }
 
+/**
+ * @brief Outputs a parser error given a expected token class
+ * 
+ * @param parser initialized parser instance
+ * @param expectedTokenClass expected token class
+ */
 void _error(Parser* parser, int expectedTokenClass) {
     parser->errorCount++;
 

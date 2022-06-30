@@ -12,6 +12,8 @@
  * @brief Builds structures needed for lexer operation.
  *
  * @param lexer a lexer instance
+ * @return true if there was some error
+ * @return false if there was no error
  */
 bool lexerInit(Lexer* lexer, const char* sourceFilePath) {
     lexer->currState = 0;
@@ -57,9 +59,7 @@ void lexerDestroy(Lexer* lexer) {
  * @brief Gets next token from P-- source code file
  *
  * @param lexer lexer instance
- * @param buffer used to store lexem
- * @param sourceCode P-- source code file pointer
- * @param tokenClass new token class
+ * @param output file to output errors
  */
 int nextToken(Lexer* lexer, FILE* output) {
     // initial state
@@ -293,7 +293,7 @@ void _fillWord(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUM
  * @brief Get next char from P-- source code file. Increments current columns
  * and line appropriately.
  *
- * @param lexer lexer instance
+ * @param lexer a lexer instance
  */
 void _nextChar(Lexer* lexer) {
     lexer->fscanfFlag = fscanf(lexer->sourceCode, "%c", &lexer->currChar);
@@ -309,10 +309,7 @@ void _nextChar(Lexer* lexer) {
  * token was EOF at which point the compilation stops.
  * Otherwise, if EOF is found in another state, we treat it as a random char
  *
- * @param lexer lexer instance
- * @param buffer lexem read by the lexer
- * @param sourceCode P-- source code file pointer
- * @param tokenClass token class identified by the lexer
+ * @param lexer a lexer instance
  */
 void _dealWithEOF(Lexer* lexer) {
     if (lexer->currState == 0) {  // EOF is recognized only from a0
@@ -351,7 +348,7 @@ void _nextState(Lexer* lexer) {
  * @brief Identifies what is the last token class. Deals with negative token class
  * (retreat) and checks if it is a protected symbol. Update lastWasNumberOrIdent flag
  * 
- * @param lexer 
+ * @param lexer a lexer instance
  */
 void _identifyTokenClass(Lexer* lexer) {
     lexer->tokenClass = lexer->finalStateClass[lexer->currState];
@@ -425,11 +422,23 @@ const char* lexerTokenClassName(int tokenClass) {
     return (tokenClass != -1) ? tokenClassName[tokenClass] : "EOF";
 }
 
+/**
+ * @brief Col count is incremented, just for showing purposes, in case there was a retreat
+ * 
+ * @param lexer a lexer instance
+ * @return int current col without considering a possible retreat
+ */
 int lexerCurrColWithoutRetreat(Lexer* lexer) {
     // Col count is incremented, just for showing purposes, in case there was a retreat
     return lexer->currCol + (lexer->finalStateClass[lexer->currState] < 0);
 }
 
+/**
+ * @brief Returns the lexer buffer or EOF if the last token was EOF
+ * 
+ * @param lexer a lexer instance
+ * @return the lexer buffer or EOF if the last token was EOF
+ */
 char* lexerBuffer(Lexer* lexer) {
     return (lexer->fscanfFlag != -1) ? lexer->buffer.str : "EOF";
 }
