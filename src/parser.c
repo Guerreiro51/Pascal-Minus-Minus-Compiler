@@ -651,15 +651,15 @@ void _error(Parser* parser, int expectedTokenClass) {
 
     String errorMsg;
     stringInit(&errorMsg);
-    appendStr(&errorMsg, "Parser error on line ");
-    appendInt(&errorMsg, parser->lexer.currLine);
-    appendStr(&errorMsg, " col ");
-    appendInt(&errorMsg, lexerCurrColWithoutRetreat(&parser->lexer));
-    appendStr(&errorMsg, ": expected ");
-    appendStr(&errorMsg, lexerTokenClassName(expectedTokenClass));
-    appendStr(&errorMsg, " but found ");
-    appendStr(&errorMsg, lexerBuffer(&parser->lexer));
-    append(&errorMsg, '\n');
+    stringAppendCstr(&errorMsg, "Parser error on line ");
+    stringAppendInt(&errorMsg, parser->lexer.currLine);
+    stringAppendCstr(&errorMsg, " col ");
+    stringAppendInt(&errorMsg, lexerCurrColWithoutRetreat(&parser->lexer));
+    stringAppendCstr(&errorMsg, ": expected ");
+    stringAppendCstr(&errorMsg, lexerTokenClassName(expectedTokenClass));
+    stringAppendCstr(&errorMsg, " but found ");
+    stringAppendCstr(&errorMsg, lexerBuffer(&parser->lexer));
+    stringAppendChar(&errorMsg, '\n');
     printf("%s", errorMsg.str);
     fprintf(parser->output, "%s", errorMsg.str);
 

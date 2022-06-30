@@ -60,7 +60,7 @@ int nextToken(Lexer* lexer, FILE* output) {
     lexer->currState = 0;
 
     // Cleaning the buffer
-    writeToString(&lexer->buffer, "", 0);
+    stringOverwrite(&lexer->buffer, "", 0);
 
     while (!lexer->finalState[lexer->currState]) {  // while the automaton hasn't reached a final state
 
@@ -77,7 +77,7 @@ int nextToken(Lexer* lexer, FILE* output) {
         // and we won't retreat (to avoid showing twice)
         if (lexer->finalStateClass[lexer->currState] == -ERROR ||
             (lexer->currState != 0 && lexer->currState != COMMENT_STATE && lexer->finalStateClass[lexer->currState] >= 0)) {
-            append(&lexer->buffer, lexer->currChar);
+            stringAppendChar(&lexer->buffer, lexer->currChar);
         }
     }
     _identifyTokenClass(lexer);
@@ -356,7 +356,7 @@ void _identifyTokenClass(Lexer* lexer) {
 
 int _checkIfProtectedSymbol(Lexer* lexer) {
     int state = 0;
-    for (int i = 0; state != -1 && i < lexer->buffer.size; i++) {
+    for (unsigned long i = 0; state != -1 && i < lexer->buffer.size; i++) {
         if (islower(lexer->buffer.str[i]))
             state = lexer->protectedSymbolMatrix[state][lexer->buffer.str[i] - 'a'];
         else

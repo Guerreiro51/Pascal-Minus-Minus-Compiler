@@ -9,9 +9,9 @@
 #include <string.h>
 
 /**
- * @brief Allocates memory for string
+ * @brief Allocates initial memory for a short string
  *
- * @param s string
+ * @param s the string
  */
 void stringInit(String* s) {
     s->size = 0;
@@ -21,71 +21,79 @@ void stringInit(String* s) {
 }
 
 /**
- * @brief Deallocates memory used
+ * @brief Deallocates string memory used
  *
- * @param s string
+ * @param s the string
  */
 void stringDestroy(String* s) {
     free(s->str);
 }
 
 /**
- * @brief Expands string capacity
+ * @brief Appends a character to the string
  *
- * @param s string
- * @param newCapacity desired capacity
+ * @param s the string
+ * @param c the character
  */
-void expand(String* s, unsigned long newCapacity) {
-    char* newBuff = (char*)malloc(newCapacity * sizeof(char));
-    for (int i = 0; i <= s->size; i++)
-        newBuff[i] = s->str[i];
-    free(s->str);
-    s->str = newBuff;
-    s->capacity = newCapacity;
-}
-
-/**
- * @brief Appends character to end of string
- *
- * @param s string
- * @param c character to be appended
- */
-void append(String* s, char c) {
+void stringAppendChar(String* s, char c) {
     if (s->size + 1 < s->capacity) {
         s->str[s->size++] = c;
         s->str[s->size] = '\0';
     } else {
-        expand(s, s->capacity * 2);  // doubles the capacity
+        _stringExpand(s, s->capacity * 2);  // doubles the capacity
         s->str[s->size++] = c;
         s->str[s->size] = '\0';
     }
 }
 
-void appendStr(String* s, const char* cstr) {
+/**
+ * @brief Appends a C string to the string
+ *
+ * @param s the string
+ * @param cstr the C string
+ */
+void stringAppendCstr(String* s, const char* cstr) {
     for (size_t i = 0; i < strlen(cstr); i++)
-        append(s, cstr[i]);
+        stringAppendChar(s, cstr[i]);
 }
 
-void appendInt(String* s, int integer) {
+/**
+ * @brief Appends an integer to the string
+ *
+ * @param s the string
+ * @param integer the integer
+ */
+void stringAppendInt(String* s, int integer) {
     static char cstrInt[12];  // INT_MIN is -2.147.483.648, so it fits in 12 bits (with signal)
     sprintf(cstrInt, "%d", integer);
-    appendStr(s, cstrInt);
+    stringAppendCstr(s, cstrInt);
 }
 
 /**
  * @brief Overwrites string
  *
  * @param s string
- * @param cstr text
- * @param size text size
+ * @param cstr some C string
+ * @param size C string size
  */
-void writeToString(String* s, const char cstr[], int size) {
+void stringOverwrite(String* s, const char cstr[], unsigned long size) {
     if (s->capacity < size)
-        expand(s, size + 1);
-
-    for (int i = 0; i < size; i++)
-        s->str[i] = cstr[i];
-
+        _stringExpand(s, size + 1);
+    memcpy(s->str, cstr, size);
     s->str[size] = '\0';
     s->size = size;
+}
+
+/**
+ * @brief Expands string capacity
+ *
+ * @param s the string
+ * @param newCapacity the desired capacity
+ */
+void _stringExpand(String* s, unsigned long newCapacity) {
+    char* newBuff = (char*)malloc(newCapacity * sizeof(char));
+    memcpy(newBuff, s->str, s->size + 1);
+    free(s->str);
+    s->str = newBuff;
+    s->capacity = newCapacity;
 }
