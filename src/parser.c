@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../header/vector.h"
+#include "../header/string.h"
 
 bool parserInit(Parser* parser, const char* sourceCodePath) {
     parser->errorCount = 0;

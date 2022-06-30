@@ -1,8 +1,8 @@
 /**
- * @file vector.c
+ * @file string.c
  * @brief String data type implementation
  */
-#include "../header/vector.h"
+#include "../header/string.h"
 
 #include <stdio.h>
 #include <stdlib.h>

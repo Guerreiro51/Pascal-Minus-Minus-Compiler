@@ -1,9 +1,9 @@
 /**
- * @file vector.h
+ * @file string.h
  * @brief String data type definition
  */
-#ifndef VECTOR_H
-#define VECTOR_H
+#ifndef STRING_H
+#define STRING_H
 
 typedef struct {
     char* str;               // string
@@ -22,4 +22,4 @@ void stringOverwrite(String* s, const char cstr[], unsigned long size);
 
 void _stringExpand(String* s, unsigned long newCapacity);
 
-#endif  // VECTOR_H
+#endif  // STRING_H

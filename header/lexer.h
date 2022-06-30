@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../header/vector.h"
+#include "../header/string.h"
 
 #define NUMBER_OF_STATES 32                    // number of states of the lexic analyser automaton
 #define NUMBER_OF_STATES_PROTECTED_SYMBOLS 65  // number of states of the protected symbol detection automaton
