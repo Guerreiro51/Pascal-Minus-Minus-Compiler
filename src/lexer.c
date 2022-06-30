@@ -399,10 +399,14 @@ const char* lexerTokenClassName(int tokenClass) {
                                            "OPEN_PAR", "CLOSE_PAR", "DOT", "ID", "BEGIN", "CONST",
                                            "DO", "END", "ELSE", "IF", "INTEGER", "FOR", "PROGRAM", "PROCEDURE",
                                            "REAL", "READ", "THEN", "TO", "VAR", "WRITE", "WHILE", "ERROR"};
-    return tokenClassName[tokenClass];
+    return (tokenClass != -1) ? tokenClassName[tokenClass] : "EOF";
 }
 
 int lexerCurrColWithoutRetreat(Lexer* lexer) {
     // Col count is incremented, just for showing purposes, in case there was a retreat
     return lexer->currCol + (lexer->finalStateClass[lexer->currState] < 0);
+}
+
+char* lexerBuffer(Lexer* lexer) {
+    return (lexer->fscanfFlag != -1) ? lexer->buffer.str : "EOF";
 }

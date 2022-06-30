@@ -58,6 +58,7 @@ int nextToken(Lexer* lexer, FILE* output);  // gets next token
 int lexerCurrColWithoutRetreat(Lexer* lexer);
 const char* lexerErrorMessage(int currState);      // return error description given current automaton state
 const char* lexerTokenClassName(int token_class);  // returns token class name given token class number
+char* lexerBuffer(Lexer* lexer);                   // return the buffer string
 
 // auxiliary functions called on lexer initialization to build some necessary structures
 void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS]);

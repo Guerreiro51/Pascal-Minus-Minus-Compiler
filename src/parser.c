@@ -43,7 +43,7 @@ void compile(Parser* parser) {
     // initial variable: programa
     _programa(parser);
 
-    if (parser->lexer.tokenClass != EOF) {
+    if (parser->lexer.fscanfFlag != EOF) {
         _error(parser, EOF);
     }
 }
@@ -170,7 +170,7 @@ void _tipo_var(Parser* parser) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {  // change
         parser->errorCount++;
-        printf("Parser error on line %d col %d: expected real or integer but found %s\n", parser->lexer.currLine, lexerCurrColWithoutRetreat(&parser->lexer), parser->lexer.buffer.str);
+        printf("Parser error on line %d col %d: expected real or integer but found %s\n", parser->lexer.currLine, lexerCurrColWithoutRetreat(&parser->lexer), lexerBuffer(&parser->lexer));
     }
 }
 
@@ -642,7 +642,7 @@ void _numero(Parser* parser) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {  // change
         parser->errorCount++;
-        printf("Parser error on line %d col %d: expected N_INTEGER or N_REAL but found %s\n", parser->lexer.currLine, lexerCurrColWithoutRetreat(&parser->lexer), parser->lexer.buffer.str);
+        printf("Parser error on line %d col %d: expected N_INTEGER or N_REAL but found %s\n", parser->lexer.currLine, lexerCurrColWithoutRetreat(&parser->lexer), lexerBuffer(&parser->lexer));
     }
 }
 
@@ -658,7 +658,7 @@ void _error(Parser* parser, int expectedTokenClass) {
     appendStr(&errorMsg, ": expected ");
     appendStr(&errorMsg, lexerTokenClassName(expectedTokenClass));
     appendStr(&errorMsg, " but found ");
-    appendStr(&errorMsg, parser->lexer.buffer.str);
+    appendStr(&errorMsg, lexerBuffer(&parser->lexer));
     append(&errorMsg, '\n');
     printf("%s", errorMsg.str);
     fprintf(parser->output, "%s", errorMsg.str);
