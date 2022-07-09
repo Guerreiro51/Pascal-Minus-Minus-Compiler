@@ -11,27 +11,42 @@
 #include "../header/string.h"
 
 /**
- * @brief Default return treatment for panic mode.
+ * @brief Default error function call.
+ * 
+ * @param expectedTokenClass expected token
+ * @param ... synchronization tokens that must be added
  */
-#define RETMODOPANICO()                                \
-    if (sincTokens[parser->lexer.tokenClass] >= 0) {   \
-        sincTokens[parser->lexer.tokenClass]--;        \
-        if (sincTokens[parser->lexer.tokenClass] >= 0) \
-            return;                                    \
-    }
-
-/**
- * @brief Default error function call
- */
-#define FOLLOWERS(expectedTokenClass, ...)                                     \
-    static const int followers[] = {##__VA_ARGS__};                            \
+#define FOLLOWERS(expectedTokenClass, ...){                                    \
+    static const int followers[] = {__VA_ARGS__};                              \
     _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));    \
     _error(parser, expectedTokenClass, sincTokens);                            \
     int level = sincTokens[parser->lexer.tokenClass]--;                        \
     _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int)); \
     if (level != 0) {                                                          \
         return;                                                                \
-    }
+    }                                                                          \
+}
+
+/**
+ * @brief Default treatment of next rule call.
+ * 
+ * @param _rule next rule function name
+ * @param ... followers of the corresponding variable
+ */  
+#define NEXTRULE(rule, ...) {                                                   \
+    static const int followers[] = {__VA_ARGS__};                               \
+    _sincTokensAdd(sincTokens, followers, sizeof(followers)/sizeof(int));       \
+    rule(parser, sincTokens);                                                   \
+    int return_flag = 0;                                                        \
+    if (sincTokens[parser->lexer.tokenClass] >= 0) {                            \
+        sincTokens[parser->lexer.tokenClass]--;                                 \
+        if (sincTokens[parser->lexer.tokenClass] >= 0)                          \
+            return_flag = 1;                                                    \
+    }                                                                           \
+    _sincTokensRemove(sincTokens, followers, sizeof(followers)/sizeof(int));    \
+    if(return_flag)                                                             \
+        return;                                                                 \
+}                                                                               \
 
 /**
  * @brief Initializes parser variables
@@ -108,11 +123,22 @@ void _sincTokensIncr(int sincTokens[]) {
 /**
  * @brief Add synchronization tokens.
  *
- * @param sincTokens sybchronization token vector
+ * @param sincTokens synchronization token vector
  */
-void _sincTokensAdd(int sincTokens[], int toAdd[], unsigned long toAddSize) {
+void _sincTokensAdd(int sincTokens[], const int toAdd[], unsigned long toAddSize) {
     for (unsigned long i = 0; i < toAddSize; i++) {
         sincTokens[toAdd[i]] = 0;
+    }
+}
+
+/**
+ * @brief Remove synchronization tokens.
+ *
+ * @param sincTokens synchronization token vector
+ */
+void _sincTokensRemove(int sincTokens[], const int toRemove[], unsigned long toRemoveSize) {
+    for (unsigned long i = 0; i < toRemoveSize; i++) {
+        sincTokens[toRemove[i]] = -1;
     }
 }
 
@@ -136,7 +162,7 @@ void compile(Parser* parser) {
 
     // check if source code ended
     if (parser->lexer.fscanfFlag != EOF) {
-        _error(parser, EOF);
+        _error(parser, EOF, sincTokens);
     }
 }
 
@@ -158,11 +184,12 @@ void _programa(Parser* parser, int sincTokens[]) {
     }
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _corpo(parser);
-        RETMODOPANICO()
     } else {
-        FOLLOWERS(SEMICOLON, DOT)
+        FOLLOWERS(SEMICOLON, CONST, VAR, PROCEDURE, BEGIN)
     }
+
+    NEXTRULE(_corpo, DOT)
+
     if (parser->lexer.tokenClass == DOT) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
@@ -170,23 +197,28 @@ void _programa(Parser* parser, int sincTokens[]) {
     }
 }
 
+
 /**
  * @brief Implements rule 2 of the grammar:
  * <corpo> ::= <dc> begin <comandos> end
  * @param parser initialized parser instance
  */
-void _corpo(Parser* parser) {
-    _dc(parser);
+void _corpo(Parser* parser, int sincTokens[]) {
+    
+    NEXTRULE(_dc, BEGIN)
+    
     if (parser->lexer.tokenClass == BEGIN) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, BEGIN);
+        FOLLOWERS(BEGIN, READ, WRITE, WHILE, IF, FOR, ID, BEGIN, END)
     }
-    _comandos(parser);
+
+    NEXTRULE(_comandos, END)
+    
     if (parser->lexer.tokenClass == END) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, END);
+        FOLLOWERS(END, DOT)
     }
 }
 
@@ -195,10 +227,12 @@ void _corpo(Parser* parser) {
  * <dc> ::= <dc_c> <dc_v> <dc_p>
  * @param parser initialized parser instance
  */
-void _dc(Parser* parser) {
-    _dc_c(parser);
-    _dc_v(parser);
-    _dc_p(parser);
+void _dc(Parser* parser, int sincTokens[]) {
+
+    NEXTRULE(_dc_c, BEGIN, VAR, PROCEDURE)
+    NEXTRULE(_dc_v, BEGIN, PROCEDURE)
+    NEXTRULE(_dc_p, BEGIN)
+    
 }
 
 /**
@@ -206,7 +240,7 @@ void _dc(Parser* parser) {
  * <dc_c> ::= const ident = <numero>  ; <dc_c> | lambda
  * @param parser initialized parser instance
  */
-void _dc_c(Parser* parser) {
+void _dc_c(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == CONST) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
@@ -215,20 +249,23 @@ void _dc_c(Parser* parser) {
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, ID);
+        FOLLOWERS(ID, ASSIGN)  // instead of ASSIGN should be only '='
     }
-    if (parser->lexer.tokenClass == ASSIGN) {  // should be only '='
+    if (parser->lexer.tokenClass == ASSIGN) {  // instead of ASSIGN should be only '='
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, ASSIGN);  // should be only '='
+        FOLLOWERS(ASSIGN, N_INTEGER, N_REAL)  // instead of ASSIGN should be only '='
     }
-    _numero(parser);
+
+    NEXTRULE(_numero, SEMICOLON)
+    
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, SEMICOLON);
+        FOLLOWERS(SEMICOLON, CONST, BEGIN, VAR, PROCEDURE);
     }
-    _dc_c(parser);
+
+    NEXTRULE(_dc_c, BEGIN, VAR, PROCEDURE)
 }
 
 /**
@@ -236,25 +273,30 @@ void _dc_c(Parser* parser) {
  * <dc_v> ::= var <variaveis> : <tipo_var> ; <dc_v> | lambda
  * @param parser initialized parser instance
  */
-void _dc_v(Parser* parser) {
+void _dc_v(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == VAR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
         return;
     }
-    _variaveis(parser);
+
+    NEXTRULE(_variaveis, DECLARE_TYPE)
+    
     if (parser->lexer.tokenClass == DECLARE_TYPE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, DECLARE_TYPE);
+        FOLLOWERS(DECLARE_TYPE, REAL, INTEGER)
     }
-    _tipo_var(parser);
+
+    NEXTRULE(_tipo_var, SEMICOLON)
+    
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, SEMICOLON);
+        FOLLOWERS(SEMICOLON, VAR, BEGIN, PROCEDURE)
     }
-    _dc_v(parser);
+
+    NEXTRULE(_dc_v, BEGIN, PROCEDURE)
 }
 
 /**
@@ -262,12 +304,13 @@ void _dc_v(Parser* parser) {
  * <tipo_var> ::= real | integer
  * @param parser initialized parser instance
  */
-void _tipo_var(Parser* parser) {
+void _tipo_var(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == REAL || parser->lexer.tokenClass == INTEGER) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {  // change
-        parser->errorCount++;
-        printf("Parser error on line %d col %d: expected real or integer but found %s\n", parser->lexer.currLine, lexerCurrColWithoutRetreat(&parser->lexer), lexerBuffer(&parser->lexer));
+        // parser->errorCount++;
+        // printf("Parser error on line %d col %d: expected real or integer but found %s\n", parser->lexer.currLine, lexerCurrColWithoutRetreat(&parser->lexer), lexerBuffer(&parser->lexer));
+        FOLLOWERS(REAL, SEMICOLON, CLOSE_PAR)
     }
 }
 
@@ -276,13 +319,14 @@ void _tipo_var(Parser* parser) {
  * <variaveis> ::= ident <mais_var>
  * @param parser initialized parser instance
  */
-void _variaveis(Parser* parser) {
+void _variaveis(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, ID);
+        FOLLOWERS(ID, COLON, DECLARE_TYPE, CLOSE_PAR)
     }
-    _mais_var(parser);
+
+    NEXTRULE(_mais_var, DECLARE_TYPE, CLOSE_PAR)
 }
 
 /**
@@ -290,13 +334,14 @@ void _variaveis(Parser* parser) {
  * <mais_var> ::= , <variaveis> | lambda
  * @param parser initialized parser instance
  */
-void _mais_var(Parser* parser) {
+void _mais_var(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == COLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
         return;
     }
-    _variaveis(parser);
+
+    NEXTRULE(_variaveis, DECLARE_TYPE, CLOSE_PAR)
 }
 
 /**
@@ -304,7 +349,7 @@ void _mais_var(Parser* parser) {
  * <dc_p> ::= procedure ident <parametros> ; <corpo_p> <dc_p> | lambda
  * @param parser initialized parser instance
  */
-void _dc_p(Parser* parser) {
+void _dc_p(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == PROCEDURE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
@@ -313,16 +358,19 @@ void _dc_p(Parser* parser) {
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, ID);
+        FOLLOWERS(ID, OPEN_PAR, SEMICOLON)
     }
-    _parametros(parser);
+
+    NEXTRULE(_parametros, SEMICOLON)
+    
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, SEMICOLON);
+        FOLLOWERS(SEMICOLON, VAR, BEGIN)
     }
-    _corpo_p(parser);
-    _dc_p(parser);
+    
+    NEXTRULE(_corpo_p, BEGIN, PROCEDURE)
+    NEXTRULE(_dc_p, BEGIN)
 }
 
 /**
@@ -330,17 +378,19 @@ void _dc_p(Parser* parser) {
  * <parametros> ::= ( <lista_par> ) | lambda
  * @param parser initialized parser instance
  */
-void _parametros(Parser* parser) {
+void _parametros(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == OPEN_PAR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
         return;
     }
-    _lista_par(parser);
+
+    NEXTRULE(_lista_par, CLOSE_PAR)
+
     if (parser->lexer.tokenClass == CLOSE_PAR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, CLOSE_PAR);
+        FOLLOWERS(CLOSE_PAR, SEMICOLON)
     }
 }
 
@@ -349,15 +399,18 @@ void _parametros(Parser* parser) {
  * <lista_par> ::= <variaveis> : <tipo_var> <mais_par>
  * @param parser initialized parser instance
  */
-void _lista_par(Parser* parser) {
-    _variaveis(parser);
+void _lista_par(Parser* parser, int sincTokens[]) {
+
+    NEXTRULE(_variaveis, DECLARE_TYPE)
+    
     if (parser->lexer.tokenClass == DECLARE_TYPE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, DECLARE_TYPE);
+        FOLLOWERS(DECLARE_TYPE, REAL, INTEGER)
     }
-    _tipo_var(parser);
-    _mais_par(parser);
+
+    NEXTRULE(_tipo_var, COLON, DECLARE_TYPE, CLOSE_PAR)
+    NEXTRULE(_mais_par, CLOSE_PAR)
 }
 
 /**
@@ -365,13 +418,14 @@ void _lista_par(Parser* parser) {
  * <mais_par> ::= ; <lista_par> | lambda
  * @param parser initialized parser instance
  */
-void _mais_par(Parser* parser) {
+void _mais_par(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
         return;
     }
-    _lista_par(parser);
+    
+    NEXTRULE(_lista_par, CLOSE_PAR)
 }
 
 /**
@@ -379,23 +433,27 @@ void _mais_par(Parser* parser) {
  * <corpo_p> ::= <dc_loc> begin <comandos> end ;
  * @param parser initialized parser instance
  */
-void _corpo_p(Parser* parser) {
-    _dc_loc(parser);
+void _corpo_p(Parser* parser, int sincTokens[]) {
+
+    NEXTRULE(_dc_loc, BEGIN)
+    
     if (parser->lexer.tokenClass == BEGIN) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, BEGIN);
+        FOLLOWERS(BEGIN, READ, WRITE, WHILE, IF, FOR, ID, BEGIN, END)
     }
-    _comandos(parser);
+
+    NEXTRULE(_comandos, END)
+    
     if (parser->lexer.tokenClass == END) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, END);
+        FOLLOWERS(END, SEMICOLON)
     }
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, SEMICOLON);
+        FOLLOWERS(SEMICOLON, BEGIN, PROCEDURE)
     }
 }
 
@@ -404,8 +462,9 @@ void _corpo_p(Parser* parser) {
  * <dc_loc> ::= <dc_v>
  * @param parser initialized parser instance
  */
-void _dc_loc(Parser* parser) {
-    _dc_v(parser);
+void _dc_loc(Parser* parser, int sincTokens[]) {
+
+    NEXTRULE(_dc_v, BEGIN)
 }
 
 /**
@@ -413,17 +472,19 @@ void _dc_loc(Parser* parser) {
  * <lista_arg> ::= ( <argumentos> ) | lambda
  * @param parser initialized parser instance
  */
-void _lista_arg(Parser* parser) {
+void _lista_arg(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == OPEN_PAR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
         return;
     }
-    _argumentos(parser);
+
+    NEXTRULE(_argumentos, CLOSE_PAR)
+    
     if (parser->lexer.tokenClass == CLOSE_PAR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, CLOSE_PAR);
+        FOLLOWERS(CLOSE_PAR, SEMICOLON)
     }
 }
 
@@ -432,13 +493,14 @@ void _lista_arg(Parser* parser) {
  * <argumentos> ::= ident <mais_ident>
  * @param parser initialized parser instance
  */
-void _argumentos(Parser* parser) {
+void _argumentos(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, ID);
+        FOLLOWERS(ID, SEMICOLON, CLOSE_PAR)
     }
-    _mais_ident(parser);
+
+    NEXTRULE(_mais_ident, CLOSE_PAR)
 }
 
 /**
@@ -446,11 +508,14 @@ void _argumentos(Parser* parser) {
  * <mais_ident> ::= ; <argumentos> | lambda
  * @param parser initialized parser instance
  */
-void _mais_ident(Parser* parser) {
+void _mais_ident(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        return;
     }
-    _argumentos(parser);
+    
+    NEXTRULE(_argumentos, CLOSE_PAR)
 }
 
 /**
@@ -458,13 +523,14 @@ void _mais_ident(Parser* parser) {
  * <pfalsa> ::= else <cmd> | lambda
  * @param parser initialized parser instance
  */
-void _pfalsa(Parser* parser) {
+void _pfalsa(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == ELSE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
         return;
     }
-    _cmd(parser);
+    
+    NEXTRULE(_cmd, SEMICOLON)
 }
 
 /**
@@ -472,7 +538,7 @@ void _pfalsa(Parser* parser) {
  * <comandos> ::= <cmd> ; <comandos> | lambda
  * @param parser initialized parser instance
  */
-void _comandos(Parser* parser) {
+void _comandos(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass != READ &&
         parser->lexer.tokenClass != WRITE &&
         parser->lexer.tokenClass != WHILE &&
@@ -482,13 +548,15 @@ void _comandos(Parser* parser) {
         parser->lexer.tokenClass != BEGIN) {  // lookahead
         return;
     }
-    _cmd(parser);
+    NEXTRULE(_cmd, SEMICOLON)
+    
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, SEMICOLON);
+        FOLLOWERS(SEMICOLON, READ, WRITE, WHILE, IF, FOR, ID, BEGIN, END)
     }
-    _comandos(parser);
+    
+    NEXTRULE(_comandos, END)
 }
 
 /**
@@ -502,100 +570,100 @@ void _comandos(Parser* parser) {
             begin <comandos> end
  * @param parser initialized parser instance
  */
-void _cmd(Parser* parser) {
+void _cmd(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == READ) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
         if (parser->lexer.tokenClass == OPEN_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, OPEN_PAR);
+            FOLLOWERS(OPEN_PAR, ID)
         }
-        _variaveis(parser);
+        NEXTRULE(_variaveis, CLOSE_PAR)
         if (parser->lexer.tokenClass == CLOSE_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, CLOSE_PAR);
+            FOLLOWERS(CLOSE_PAR, SEMICOLON)
         }
     } else if (parser->lexer.tokenClass == WRITE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
         if (parser->lexer.tokenClass == OPEN_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, OPEN_PAR);
+            FOLLOWERS(OPEN_PAR, ID)
         }
-        _variaveis(parser);
+        NEXTRULE(_variaveis, CLOSE_PAR)
         if (parser->lexer.tokenClass == CLOSE_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, CLOSE_PAR);
+            FOLLOWERS(CLOSE_PAR, SEMICOLON)
         }
     } else if (parser->lexer.tokenClass == WHILE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
         if (parser->lexer.tokenClass == OPEN_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, OPEN_PAR);
+            FOLLOWERS(OPEN_PAR, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
         }
-        _condicao(parser);
+        NEXTRULE(_condicao, CLOSE_PAR)
         if (parser->lexer.tokenClass == CLOSE_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, CLOSE_PAR);
+            FOLLOWERS(CLOSE_PAR, DO)
         }
         if (parser->lexer.tokenClass == DO) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, DO);
+            FOLLOWERS(DO, READ, WRITE, WHILE, IF, FOR, ID, BEGIN)
         }
-        _cmd(parser);
+        NEXTRULE(_cmd, SEMICOLON)
     } else if (parser->lexer.tokenClass == IF) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _condicao(parser);
+        NEXTRULE(_condicao, THEN)
         if (parser->lexer.tokenClass == THEN) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, THEN);
+            FOLLOWERS(THEN, READ, WRITE, WHILE, IF, FOR, ID, BEGIN)
         }
-        _cmd(parser);
-        _pfalsa(parser);
+        NEXTRULE(_cmd, ELSE, SEMICOLON)
+        NEXTRULE(_pfalsa, SEMICOLON)
     } else if (parser->lexer.tokenClass == FOR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
         if (parser->lexer.tokenClass == ID) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, ID);
+            FOLLOWERS(ID, ASSIGN)
         }
         if (parser->lexer.tokenClass == ASSIGN) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, ASSIGN);
+            FOLLOWERS(ASSIGN, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
         }
-        _expressao(parser);
+        NEXTRULE(_expressao, TO)
         if (parser->lexer.tokenClass == TO) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, TO);
+            FOLLOWERS(TO, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
         }
-        _expressao(parser);
+        NEXTRULE(_expressao, DO)
         if (parser->lexer.tokenClass == DO) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, DO);
+            FOLLOWERS(DO, READ, WRITE, WHILE, IF, FOR, ID, BEGIN)
         }
-        _cmd(parser);
+        NEXTRULE(_cmd, SEMICOLON)
     } else if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _pos_ident(parser);
+        NEXTRULE(_pos_ident, SEMICOLON)
     } else if (parser->lexer.tokenClass == BEGIN) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _comandos(parser);
+        NEXTRULE(_comandos, END)
         if (parser->lexer.tokenClass == END) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, END);
+            FOLLOWERS(END, SEMICOLON)
         }
     } else {
-        _error(parser, SEMICOLON);  // change
+        FOLLOWERS(SEMICOLON, SEMICOLON)  // change expected token
     }
 }
 
@@ -604,13 +672,16 @@ void _cmd(Parser* parser) {
  * <pos_ident> ::= := <expressao> | <lista_arg>
  * @param parser initialized parser instance
  */
-void _pos_ident(Parser* parser) {
-    if (parser->lexer.tokenClass == ASSIGN) {
-        parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _expressao(parser);
-    } else {
-        _lista_arg(parser);
+void _pos_ident(Parser* parser, int sincTokens[]) {
+    if( parser->lexer.tokenClass == OPEN_PAR ){ // lookahead
+        NEXTRULE(_lista_arg, SEMICOLON)
     }
+    else if (parser->lexer.tokenClass == ASSIGN) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        FOLLOWERS(ASSIGN, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
+    }
+    NEXTRULE(_expressao, SEMICOLON, RELATION, CLOSE_PAR, THEN, TO, DO)
 }
 
 /**
@@ -618,10 +689,10 @@ void _pos_ident(Parser* parser) {
  * <condicao> ::= <expressao> <relacao> <expressao>
  * @param parser initialized parser instance
  */
-void _condicao(Parser* parser) {
-    _expressao(parser);
-    _relacao(parser);
-    _expressao(parser);
+void _condicao(Parser* parser, int sincTokens[]) {
+    NEXTRULE(_expressao, RELATION)
+    NEXTRULE(_relacao, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
+    NEXTRULE(_expressao, SEMICOLON, RELATION, CLOSE_PAR, THEN, TO, DO)
 }
 
 /**
@@ -629,11 +700,11 @@ void _condicao(Parser* parser) {
  * <relacao> ::= = | <> | >= | <= | > | <
  * @param parser initialized parser instance
  */
-void _relacao(Parser* parser) {
+void _relacao(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == RELATION) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, RELATION);
+        FOLLOWERS(RELATION, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
     }
 }
 
@@ -642,9 +713,9 @@ void _relacao(Parser* parser) {
  * <expressao> ::= <termo> <outros_termos>
  * @param parser initialized parser instance
  */
-void _expressao(Parser* parser) {
-    _termo(parser);
-    _outros_termos(parser);
+void _expressao(Parser* parser, int sincTokens[]) {
+    NEXTRULE(_termo, OP_UN)
+    NEXTRULE(_outros_termos, SEMICOLON, RELATION, CLOSE_PAR, THEN, TO, DO)
 }
 
 /**
@@ -652,7 +723,7 @@ void _expressao(Parser* parser) {
  * <op_un> ::= + | - | lambda
  * @param parser initialized parser instance
  */
-void _op_un(Parser* parser) {
+void _op_un(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == OP_UN) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     }
@@ -663,11 +734,11 @@ void _op_un(Parser* parser) {
  * <outros_termos> ::= <op_ad> <termo> <outros_termos> | lambda
  * @param parser initialized parser instance
  */
-void _outros_termos(Parser* parser) {
+void _outros_termos(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == OP_ADD) {  // lookahead
-        _op_ad(parser);
-        _termo(parser);
-        _outros_termos(parser);
+        NEXTRULE(_op_ad, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
+        NEXTRULE(_termo, OP_UN)
+        NEXTRULE(_outros_termos, SEMICOLON, RELATION, CLOSE_PAR, THEN, TO, DO)
     }
 }
 
@@ -676,11 +747,11 @@ void _outros_termos(Parser* parser) {
  * <op_ad> ::= + | -
  * @param parser initialized parser instance
  */
-void _op_ad(Parser* parser) {
+void _op_ad(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == OP_ADD) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, OP_ADD);
+        FOLLOWERS(OP_ADD, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
     }
 }
 
@@ -689,10 +760,10 @@ void _op_ad(Parser* parser) {
  * <termo> ::= <op_un> <fator> <mais_fatores>
  * @param parser initialized parser instance
  */
-void _termo(Parser* parser) {
-    _op_un(parser);
-    _fator(parser);
-    _mais_fatores(parser);
+void _termo(Parser* parser, int sincTokens[]) {
+    NEXTRULE(_op_un, ID, OPEN_PAR, N_INTEGER, N_REAL)
+    NEXTRULE(_fator, OP_MULT)
+    NEXTRULE(_mais_fatores, OP_UN)
 }
 
 /**
@@ -700,11 +771,11 @@ void _termo(Parser* parser) {
  * <mais_fatores> ::= <op_mul> <fator> <mais_fatores> | lambda
  * @param parser initialized parser instance
  */
-void _mais_fatores(Parser* parser) {
+void _mais_fatores(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == OP_MULT) {  // lookahead
-        _op_mul(parser);
-        _fator(parser);
-        _mais_fatores(parser);
+        NEXTRULE(_op_mul, ID, OPEN_PAR, N_INTEGER, N_REAL)
+        NEXTRULE(_fator, OP_MULT)
+        NEXTRULE(_mais_fatores, OP_UN)
     }
 }
 
@@ -713,11 +784,11 @@ void _mais_fatores(Parser* parser) {
  * <op_mul> ::= *|/
  * @param parser initialized parser instance
  */
-void _op_mul(Parser* parser) {
+void _op_mul(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == OP_MULT) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, OP_MULT);
+        FOLLOWERS(OP_MULT, ID, OPEN_PAR, N_INTEGER, N_REAL)
     }
 }
 
@@ -726,19 +797,19 @@ void _op_mul(Parser* parser) {
  * <fator> ::= ident | <numero> | (<expressao>)
  * @param parser initialized parser instance
  */
-void _fator(Parser* parser) {
+void _fator(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else if (parser->lexer.tokenClass == OPEN_PAR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _expressao(parser);
+        NEXTRULE(_expressao, CLOSE_PAR)
         if (parser->lexer.tokenClass == CLOSE_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            _error(parser, CLOSE_PAR);
+            FOLLOWERS(CLOSE_PAR, OP_MULT)
         }
     } else {
-        _numero(parser);
+        NEXTRULE(_numero, SEMICOLON, OP_MULT)
     }
 }
 
@@ -747,7 +818,7 @@ void _fator(Parser* parser) {
  * <numero> ::= numero_int | numero_real
  * @param parser initialized parser instance
  */
-void _numero(Parser* parser) {
+void _numero(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == N_INTEGER || parser->lexer.tokenClass == N_REAL) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {  // change

@@ -52,17 +52,31 @@ $(PROJ_NAME): $(OBJ)
 ./$(ODIR)/main.o: ./$(CDIR)/main.c $(H_SOURCE)
 	$(CC) -c -o $@ $< $(CC_FLAGS) $(LIBS)
 
+
 objFolder:
 	@ mkdir -p $(ODIR)
 
-.PHONY: run
+# .PHONY: preprocess
+# preprocess:
 
+# objFolder $(PROJ_NAME)
+
+# $(PROJ_NAME): $(OBJ)
+# 	$(CC) -E $@ $^ $(CC_FLAGS) $(LIBS)
+
+# ./$(ODIR)/%.o: ./$(CDIR)/%.c ./$(HDIR)/%.h
+# 	$(CC) -c -E $@ $< $(CC_FLAGS) $(LIBS)
+
+# ./$(ODIR)/main.o: ./$(CDIR)/main.c $(H_SOURCE)
+# 	$(CC) -c -E $@ $< $(CC_FLAGS) $(LIBS)
+
+	
+.PHONY: run
 run:
 	@ read -r -p "Enter the path to the file to compile: " PATH \
 		&& ./$(PROJ_NAME) $${PATH};
 
 .PHONY: clean
-
 clean:
 	@ rm -rf ./$(ODIR)/*.o ./$(ODIR) $(PROJ_NAME) output.txt tokenOutput.txt
 
