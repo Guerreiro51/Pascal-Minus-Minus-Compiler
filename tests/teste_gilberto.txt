@@ -11,7 +11,9 @@ var x: real;
 
 begin
 	read(x,@);
-	x:=fat(x);
+	x:=fat(x); {não existe em P--, procedimentos não tem retorno}
+	x:=3;
+	fat(x);
 	write(x);
 {erro de numero real mal formado, caracter fora da linguagem, comentario nao fechado...
 end.
