@@ -19,10 +19,16 @@ bool parserInit(Parser* parser, const char* sourceCodePath);
 void parserDestroy(Parser* parser);
 void compile(Parser* parser);  // the syntax analyser controls the compilation process
 
-void _error(Parser* parser, int expectedTokenClass);
+void _error(Parser* parser, int expectedTokenClass, int sincTokens[]);
+
+// synchronization token vector management routines
+void _sincTokensInit(int sincTokens[]);
+void _sincTokensCopy(int sincTokens[], int copySincTokens[]);
+void _sincTokensIncr(int sincTokens[]);
+void _sincTokensAdd(int sincTokens[], int toAdd[], unsigned long toAddSize);
 
 // P-- grammar
-void _programa(Parser* parser);
+void _programa(Parser* parser, int sincTokens[]);
 void _corpo(Parser* parser);
 void _dc(Parser* parser);
 void _dc_c(Parser* parser);

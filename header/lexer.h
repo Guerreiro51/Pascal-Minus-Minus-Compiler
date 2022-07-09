@@ -20,8 +20,10 @@
 #define OP_ADD_STATE 10
 #define OP_UN_STATE 23
 
+#define N_TOKEN_CLASS 32  // number of token classes
+
 // existing token classes
-enum TOKEN_CLASS {  N_REAL = 1, N_INTEGER, OP_UN, OP_ADD, OP_MULT, RELATION, 
+enum TOKEN_CLASS {  LAMBDA, N_REAL, N_INTEGER, OP_UN, OP_ADD, OP_MULT, RELATION, 
                     ASSIGN, DECLARE_TYPE, SEMICOLON, COLON, 
                     OPEN_PAR, CLOSE_PAR, DOT, ID, BEGIN, CONST, 
                     DO, END, ELSE, IF, INTEGER, FOR, PROGRAM, PROCEDURE,

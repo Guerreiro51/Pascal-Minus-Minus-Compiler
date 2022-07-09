@@ -11,6 +11,29 @@
 #include "../header/string.h"
 
 /**
+ * @brief Default return treatment for panic mode.
+ */
+#define RETMODOPANICO()                                \
+    if (sincTokens[parser->lexer.tokenClass] >= 0) {   \
+        sincTokens[parser->lexer.tokenClass]--;        \
+        if (sincTokens[parser->lexer.tokenClass] >= 0) \
+            return;                                    \
+    }
+
+/**
+ * @brief Default error function call
+ */
+#define FOLLOWERS(expectedTokenClass, ...)                                     \
+    static const int followers[] = {##__VA_ARGS__};                            \
+    _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));    \
+    _error(parser, expectedTokenClass, sincTokens);                            \
+    int level = sincTokens[parser->lexer.tokenClass]--;                        \
+    _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int)); \
+    if (level != 0) {                                                          \
+        return;                                                                \
+    }
+
+/**
  * @brief Initializes parser variables
  *
  * @param parser a parser instance
@@ -46,6 +69,54 @@ void parserDestroy(Parser* parser) {
 }
 
 /**
+ * @brief Initialize vector of synchronization tokens, -1 indicates
+ * the token isn't a synchronization token in the current context.
+ * Values greater then or equal to 0 indicate the depth of the synchronization
+ * token.
+ *
+ * @param sincTokens sybchronization token vector
+ */
+void _sincTokensInit(int sincTokens[]) {
+    for (int i = 0; i < N_TOKEN_CLASS; i++) {
+        sincTokens[i] = -1;
+    }
+}
+
+/**
+ * @brief Make a copy of the synchronization token vector
+ *
+ * @param sincTokens original synchronization token vector
+ * @param copySincTokens copy
+ */
+void _sincTokensCopy(int sincTokens[], int copySincTokens[]) {
+    for (int i = 0; i < N_TOKEN_CLASS; i++) {
+        copySincTokens[i] += sincTokens[i];
+    }
+}
+
+/**
+ * @brief Increment depth of synchronization tokens.
+ *
+ * @param sincTokens sybchronization token vector
+ */
+void _sincTokensIncr(int sincTokens[]) {
+    for (int i = 0; i < N_TOKEN_CLASS; i++) {
+        sincTokens[i] += (sincTokens[i] >= 0);
+    }
+}
+
+/**
+ * @brief Add synchronization tokens.
+ *
+ * @param sincTokens sybchronization token vector
+ */
+void _sincTokensAdd(int sincTokens[], int toAdd[], unsigned long toAddSize) {
+    for (unsigned long i = 0; i < toAddSize; i++) {
+        sincTokens[toAdd[i]] = 0;
+    }
+}
+
+/**
  * @brief Controls the compilation process.
  *
  * @param parser initialized parser instance
@@ -54,8 +125,14 @@ void compile(Parser* parser) {
     // get first token
     parser->errorCount += nextToken(&parser->lexer, parser->output);
 
+    // initialize synchronization tokens vector
+    int sincTokens[N_TOKEN_CLASS];
+    _sincTokensInit(sincTokens);
+
     // starts building the implicit parse tree
-    _programa(parser);
+    const int followers[] = {LAMBDA};
+    _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));
+    _programa(parser, sincTokens);
 
     // check if source code ended
     if (parser->lexer.fscanfFlag != EOF) {
@@ -68,27 +145,28 @@ void compile(Parser* parser) {
  * <programa> ::= program ident ; <corpo> .
  * @param parser initialized parser instance
  */
-void _programa(Parser* parser) {
+void _programa(Parser* parser, int sincTokens[]) {
     if (parser->lexer.tokenClass == PROGRAM) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, PROGRAM);
+        FOLLOWERS(PROGRAM, ID)
     }
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, ID);
+        FOLLOWERS(ID, SEMICOLON)
     }
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
         _corpo(parser);
+        RETMODOPANICO()
     } else {
-        _error(parser, SEMICOLON);
+        FOLLOWERS(SEMICOLON, DOT)
     }
     if (parser->lexer.tokenClass == DOT) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        _error(parser, DOT);
+        FOLLOWERS(DOT, LAMBDA)
     }
 }
 
@@ -401,7 +479,7 @@ void _comandos(Parser* parser) {
         parser->lexer.tokenClass != IF &&
         parser->lexer.tokenClass != FOR &&
         parser->lexer.tokenClass != ID &&
-        parser->lexer.tokenClass != BEGIN) { // lookahead
+        parser->lexer.tokenClass != BEGIN) {  // lookahead
         return;
     }
     _cmd(parser);
@@ -586,7 +664,7 @@ void _op_un(Parser* parser) {
  * @param parser initialized parser instance
  */
 void _outros_termos(Parser* parser) {
-    if (parser->lexer.tokenClass == OP_ADD) { // lookahead
+    if (parser->lexer.tokenClass == OP_ADD) {  // lookahead
         _op_ad(parser);
         _termo(parser);
         _outros_termos(parser);
@@ -623,7 +701,7 @@ void _termo(Parser* parser) {
  * @param parser initialized parser instance
  */
 void _mais_fatores(Parser* parser) {
-    if (parser->lexer.tokenClass == OP_MULT) { // lookahead
+    if (parser->lexer.tokenClass == OP_MULT) {  // lookahead
         _op_mul(parser);
         _fator(parser);
         _mais_fatores(parser);
@@ -684,7 +762,7 @@ void _numero(Parser* parser) {
  * @param parser initialized parser instance
  * @param expectedTokenClass expected token class
  */
-void _error(Parser* parser, int expectedTokenClass) {
+void _error(Parser* parser, int expectedTokenClass, int sincTokens[]) {
     parser->errorCount++;
 
     String errorMsg;
@@ -702,4 +780,7 @@ void _error(Parser* parser, int expectedTokenClass) {
     fprintf(parser->output, "%s", errorMsg.str);
 
     stringDestroy(&errorMsg);
+
+    while (sincTokens[parser->lexer.tokenClass] == -1)
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
 }
