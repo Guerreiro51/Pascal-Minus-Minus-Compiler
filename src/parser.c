@@ -71,24 +71,24 @@ void compile(Parser* parser) {
 void _programa(Parser* parser) {
     if (parser->lexer.tokenClass == PROGRAM) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        if (parser->lexer.tokenClass == ID) {
-            parser->errorCount += nextToken(&parser->lexer, parser->output);
-            if (parser->lexer.tokenClass == SEMICOLON) {
-                parser->errorCount += nextToken(&parser->lexer, parser->output);
-                _corpo(parser);
-                if (parser->lexer.tokenClass == DOT) {
-                    parser->errorCount += nextToken(&parser->lexer, parser->output);
-                } else {
-                    _error(parser, DOT);
-                }
-            } else {
-                _error(parser, SEMICOLON);
-            }
-        } else {
-            _error(parser, ID);
-        }
     } else {
         _error(parser, PROGRAM);
+    }
+    if (parser->lexer.tokenClass == ID) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, ID);
+    }
+    if (parser->lexer.tokenClass == SEMICOLON) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+        _corpo(parser);
+    } else {
+        _error(parser, SEMICOLON);
+    }
+    if (parser->lexer.tokenClass == DOT) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, DOT);
     }
 }
 
@@ -101,14 +101,14 @@ void _corpo(Parser* parser) {
     _dc(parser);
     if (parser->lexer.tokenClass == BEGIN) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _comandos(parser);
-        if (parser->lexer.tokenClass == END) {
-            parser->errorCount += nextToken(&parser->lexer, parser->output);
-        } else {
-            _error(parser, END);
-        }
     } else {
         _error(parser, BEGIN);
+    }
+    _comandos(parser);
+    if (parser->lexer.tokenClass == END) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, END);
     }
 }
 
@@ -131,24 +131,26 @@ void _dc(Parser* parser) {
 void _dc_c(Parser* parser) {
     if (parser->lexer.tokenClass == CONST) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        if (parser->lexer.tokenClass == ID) {
-            parser->errorCount += nextToken(&parser->lexer, parser->output);
-            if (parser->lexer.tokenClass == ASSIGN) {  // should be only '='
-                parser->errorCount += nextToken(&parser->lexer, parser->output);
-                _numero(parser);
-                if (parser->lexer.tokenClass == SEMICOLON) {
-                    parser->errorCount += nextToken(&parser->lexer, parser->output);
-                    _dc_c(parser);
-                } else {
-                    _error(parser, SEMICOLON);
-                }
-            } else {
-                _error(parser, ASSIGN);  // should be only '='
-            }
-        } else {
-            _error(parser, ID);
-        }
+    } else {
+        return;
     }
+    if (parser->lexer.tokenClass == ID) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, ID);
+    }
+    if (parser->lexer.tokenClass == ASSIGN) {  // should be only '='
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, ASSIGN);  // should be only '='
+    }
+    _numero(parser);
+    if (parser->lexer.tokenClass == SEMICOLON) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, SEMICOLON);
+    }
+    _dc_c(parser);
 }
 
 /**
@@ -159,20 +161,22 @@ void _dc_c(Parser* parser) {
 void _dc_v(Parser* parser) {
     if (parser->lexer.tokenClass == VAR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _variaveis(parser);
-        if (parser->lexer.tokenClass == DECLARE_TYPE) {
-            parser->errorCount += nextToken(&parser->lexer, parser->output);
-            _tipo_var(parser);
-            if (parser->lexer.tokenClass == SEMICOLON) {
-                parser->errorCount += nextToken(&parser->lexer, parser->output);
-                _dc_v(parser);
-            } else {
-                _error(parser, SEMICOLON);
-            }
-        } else {
-            _error(parser, DECLARE_TYPE);
-        }
+    } else {
+        return;
     }
+    _variaveis(parser);
+    if (parser->lexer.tokenClass == DECLARE_TYPE) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, DECLARE_TYPE);
+    }
+    _tipo_var(parser);
+    if (parser->lexer.tokenClass == SEMICOLON) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, SEMICOLON);
+    }
+    _dc_v(parser);
 }
 
 /**
@@ -197,10 +201,10 @@ void _tipo_var(Parser* parser) {
 void _variaveis(Parser* parser) {
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _mais_var(parser);
     } else {
         _error(parser, ID);
     }
+    _mais_var(parser);
 }
 
 /**
@@ -211,8 +215,10 @@ void _variaveis(Parser* parser) {
 void _mais_var(Parser* parser) {
     if (parser->lexer.tokenClass == COLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _variaveis(parser);
+    } else {
+        return;
     }
+    _variaveis(parser);
 }
 
 /**
@@ -223,20 +229,22 @@ void _mais_var(Parser* parser) {
 void _dc_p(Parser* parser) {
     if (parser->lexer.tokenClass == PROCEDURE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        if (parser->lexer.tokenClass == ID) {
-            parser->errorCount += nextToken(&parser->lexer, parser->output);
-            _parametros(parser);
-            if (parser->lexer.tokenClass == SEMICOLON) {
-                parser->errorCount += nextToken(&parser->lexer, parser->output);
-                _corpo_p(parser);
-                _dc_p(parser);
-            } else {
-                _error(parser, SEMICOLON);
-            }
-        } else {
-            _error(parser, ID);
-        }
+    } else {
+        return;
     }
+    if (parser->lexer.tokenClass == ID) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, ID);
+    }
+    _parametros(parser);
+    if (parser->lexer.tokenClass == SEMICOLON) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, SEMICOLON);
+    }
+    _corpo_p(parser);
+    _dc_p(parser);
 }
 
 /**
@@ -247,12 +255,14 @@ void _dc_p(Parser* parser) {
 void _parametros(Parser* parser) {
     if (parser->lexer.tokenClass == OPEN_PAR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _lista_par(parser);
-        if (parser->lexer.tokenClass == CLOSE_PAR) {
-            parser->errorCount += nextToken(&parser->lexer, parser->output);
-        } else {
-            _error(parser, CLOSE_PAR);
-        }
+    } else {
+        return;
+    }
+    _lista_par(parser);
+    if (parser->lexer.tokenClass == CLOSE_PAR) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, CLOSE_PAR);
     }
 }
 
@@ -265,11 +275,11 @@ void _lista_par(Parser* parser) {
     _variaveis(parser);
     if (parser->lexer.tokenClass == DECLARE_TYPE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _tipo_var(parser);
-        _mais_par(parser);
     } else {
         _error(parser, DECLARE_TYPE);
     }
+    _tipo_var(parser);
+    _mais_par(parser);
 }
 
 /**
@@ -280,8 +290,10 @@ void _lista_par(Parser* parser) {
 void _mais_par(Parser* parser) {
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _lista_par(parser);
+    } else {
+        return;
     }
+    _lista_par(parser);
 }
 
 /**
@@ -293,19 +305,19 @@ void _corpo_p(Parser* parser) {
     _dc_loc(parser);
     if (parser->lexer.tokenClass == BEGIN) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _comandos(parser);
-        if (parser->lexer.tokenClass == END) {
-            parser->errorCount += nextToken(&parser->lexer, parser->output);
-            if (parser->lexer.tokenClass == SEMICOLON) {
-                parser->errorCount += nextToken(&parser->lexer, parser->output);
-            } else {
-                _error(parser, SEMICOLON);
-            }
-        } else {
-            _error(parser, END);
-        }
     } else {
         _error(parser, BEGIN);
+    }
+    _comandos(parser);
+    if (parser->lexer.tokenClass == END) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, END);
+    }
+    if (parser->lexer.tokenClass == SEMICOLON) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, SEMICOLON);
     }
 }
 
@@ -326,12 +338,14 @@ void _dc_loc(Parser* parser) {
 void _lista_arg(Parser* parser) {
     if (parser->lexer.tokenClass == OPEN_PAR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _argumentos(parser);
-        if (parser->lexer.tokenClass == CLOSE_PAR) {
-            parser->errorCount += nextToken(&parser->lexer, parser->output);
-        } else {
-            _error(parser, CLOSE_PAR);
-        }
+    } else {
+        return;
+    }
+    _argumentos(parser);
+    if (parser->lexer.tokenClass == CLOSE_PAR) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, CLOSE_PAR);
     }
 }
 
@@ -343,10 +357,10 @@ void _lista_arg(Parser* parser) {
 void _argumentos(Parser* parser) {
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _mais_ident(parser);
     } else {
         _error(parser, ID);
     }
+    _mais_ident(parser);
 }
 
 /**
@@ -357,8 +371,8 @@ void _argumentos(Parser* parser) {
 void _mais_ident(Parser* parser) {
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _argumentos(parser);
     }
+    _argumentos(parser);
 }
 
 /**
@@ -369,8 +383,10 @@ void _mais_ident(Parser* parser) {
 void _pfalsa(Parser* parser) {
     if (parser->lexer.tokenClass == ELSE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-        _cmd(parser);
+    } else {
+        return;
     }
+    _cmd(parser);
 }
 
 /**
@@ -379,21 +395,22 @@ void _pfalsa(Parser* parser) {
  * @param parser initialized parser instance
  */
 void _comandos(Parser* parser) {
-    if (parser->lexer.tokenClass == READ ||
-        parser->lexer.tokenClass == WRITE ||
-        parser->lexer.tokenClass == WHILE ||
-        parser->lexer.tokenClass == IF ||
-        parser->lexer.tokenClass == FOR ||
-        parser->lexer.tokenClass == ID ||
-        parser->lexer.tokenClass == BEGIN) {
-        _cmd(parser);
-        if (parser->lexer.tokenClass == SEMICOLON) {
-            parser->errorCount += nextToken(&parser->lexer, parser->output);
-            _comandos(parser);
-        } else {
-            _error(parser, SEMICOLON);
-        }
+    if (parser->lexer.tokenClass != READ &&
+        parser->lexer.tokenClass != WRITE &&
+        parser->lexer.tokenClass != WHILE &&
+        parser->lexer.tokenClass != IF &&
+        parser->lexer.tokenClass != FOR &&
+        parser->lexer.tokenClass != ID &&
+        parser->lexer.tokenClass != BEGIN) { // lookahead
+        return;
     }
+    _cmd(parser);
+    if (parser->lexer.tokenClass == SEMICOLON) {
+        parser->errorCount += nextToken(&parser->lexer, parser->output);
+    } else {
+        _error(parser, SEMICOLON);
+    }
+    _comandos(parser);
 }
 
 /**
@@ -412,82 +429,82 @@ void _cmd(Parser* parser) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
         if (parser->lexer.tokenClass == OPEN_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
-            _variaveis(parser);
-            if (parser->lexer.tokenClass == CLOSE_PAR) {
-                parser->errorCount += nextToken(&parser->lexer, parser->output);
-            } else {
-                _error(parser, CLOSE_PAR);
-            }
         } else {
             _error(parser, OPEN_PAR);
+        }
+        _variaveis(parser);
+        if (parser->lexer.tokenClass == CLOSE_PAR) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+        } else {
+            _error(parser, CLOSE_PAR);
         }
     } else if (parser->lexer.tokenClass == WRITE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
         if (parser->lexer.tokenClass == OPEN_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
-            _variaveis(parser);
-            if (parser->lexer.tokenClass == CLOSE_PAR) {
-                parser->errorCount += nextToken(&parser->lexer, parser->output);
-            } else {
-                _error(parser, CLOSE_PAR);
-            }
         } else {
             _error(parser, OPEN_PAR);
+        }
+        _variaveis(parser);
+        if (parser->lexer.tokenClass == CLOSE_PAR) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+        } else {
+            _error(parser, CLOSE_PAR);
         }
     } else if (parser->lexer.tokenClass == WHILE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
         if (parser->lexer.tokenClass == OPEN_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
-            _condicao(parser);
-            if (parser->lexer.tokenClass == CLOSE_PAR) {
-                parser->errorCount += nextToken(&parser->lexer, parser->output);
-                if (parser->lexer.tokenClass == DO) {
-                    parser->errorCount += nextToken(&parser->lexer, parser->output);
-                    _cmd(parser);
-                } else {
-                    _error(parser, DO);
-                }
-            } else {
-                _error(parser, CLOSE_PAR);
-            }
         } else {
             _error(parser, OPEN_PAR);
         }
+        _condicao(parser);
+        if (parser->lexer.tokenClass == CLOSE_PAR) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+        } else {
+            _error(parser, CLOSE_PAR);
+        }
+        if (parser->lexer.tokenClass == DO) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+        } else {
+            _error(parser, DO);
+        }
+        _cmd(parser);
     } else if (parser->lexer.tokenClass == IF) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
         _condicao(parser);
         if (parser->lexer.tokenClass == THEN) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
-            _cmd(parser);
-            _pfalsa(parser);
         } else {
             _error(parser, THEN);
         }
+        _cmd(parser);
+        _pfalsa(parser);
     } else if (parser->lexer.tokenClass == FOR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
         if (parser->lexer.tokenClass == ID) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
-            if (parser->lexer.tokenClass == ASSIGN) {
-                parser->errorCount += nextToken(&parser->lexer, parser->output);
-                _expressao(parser);
-                if (parser->lexer.tokenClass == TO) {
-                    parser->errorCount += nextToken(&parser->lexer, parser->output);
-                    _expressao(parser);
-                    if (parser->lexer.tokenClass == DO) {
-                        parser->errorCount += nextToken(&parser->lexer, parser->output);
-                        _cmd(parser);
-                    } else {
-                        _error(parser, DO);
-                    }
-                } else {
-                    _error(parser, TO);
-                }
-            } else {
-                _error(parser, ASSIGN);
-            }
         } else {
             _error(parser, ID);
         }
+        if (parser->lexer.tokenClass == ASSIGN) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+        } else {
+            _error(parser, ASSIGN);
+        }
+        _expressao(parser);
+        if (parser->lexer.tokenClass == TO) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+        } else {
+            _error(parser, TO);
+        }
+        _expressao(parser);
+        if (parser->lexer.tokenClass == DO) {
+            parser->errorCount += nextToken(&parser->lexer, parser->output);
+        } else {
+            _error(parser, DO);
+        }
+        _cmd(parser);
     } else if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
         _pos_ident(parser);
@@ -569,7 +586,7 @@ void _op_un(Parser* parser) {
  * @param parser initialized parser instance
  */
 void _outros_termos(Parser* parser) {
-    if (parser->lexer.tokenClass == OP_ADD) {
+    if (parser->lexer.tokenClass == OP_ADD) { // lookahead
         _op_ad(parser);
         _termo(parser);
         _outros_termos(parser);
@@ -606,7 +623,7 @@ void _termo(Parser* parser) {
  * @param parser initialized parser instance
  */
 void _mais_fatores(Parser* parser) {
-    if (parser->lexer.tokenClass == OP_MULT) {
+    if (parser->lexer.tokenClass == OP_MULT) { // lookahead
         _op_mul(parser);
         _fator(parser);
         _mais_fatores(parser);
@@ -663,7 +680,7 @@ void _numero(Parser* parser) {
 
 /**
  * @brief Outputs a parser error given an expected token class
- * 
+ *
  * @param parser initialized parser instance
  * @param expectedTokenClass expected token class
  */
