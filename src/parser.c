@@ -20,7 +20,7 @@
     static const int followers[] = {__VA_ARGS__};                              \
     _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));    \
     _error(parser, expectedTokenClass, sincTokens);                            \
-    int level = sincTokens[parser->lexer.tokenClass];                          \
+    int level = linkedListPeak(sincTokens[parser->lexer.tokenClass]);          \
     _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int)); \
     if (level != 0) {                                                          \
         _sincTokensDecr(sincTokens);                                           \
@@ -39,7 +39,7 @@
     _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));    \
     rule(parser, sincTokens);                                                  \
     int return_flag = 0;                                                       \
-    if (sincTokens[parser->lexer.tokenClass] > 0) {                            \
+    if ( linkedListPeak( sincTokens[parser->lexer.tokenClass] ) > 0) {         \
         return_flag = 1;                                                       \
     }                                                                          \
     _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int)); \
@@ -92,43 +92,20 @@ void parserDestroy(Parser* parser) {
  *
  * @param sincTokens sybchronization token vector
  */
-void _sincTokensInit(int sincTokens[]) {
+void _sincTokensInit(Node* sincTokens[]) {
     for (int i = 0; i < N_TOKEN_CLASS; i++) {
-        sincTokens[i] = -1;
+        sincTokens[i] = NULL;
     }
 }
 
 /**
- * @brief Make a copy of the synchronization token vector
- *
- * @param sincTokens original synchronization token vector
- * @param copySincTokens copy
- */
-void _sincTokensCopy(int sincTokens[], int copySincTokens[]) {
-    for (int i = 0; i < N_TOKEN_CLASS; i++) {
-        copySincTokens[i] += sincTokens[i];
-    }
-}
-
-/**
- * @brief Increment depth of synchronization tokens.
+ * @brief Destroy vector of synchronization tokens.
  *
  * @param sincTokens sybchronization token vector
  */
-void _sincTokensIncr(int sincTokens[]) {
+void _sincTokensDestroy(Node* sincTokens[]) {
     for (int i = 0; i < N_TOKEN_CLASS; i++) {
-        sincTokens[i] += (sincTokens[i] >= 0);
-    }
-}
-
-/**
- * @brief Decrement depth of synchronization tokens.
- *
- * @param sincTokens sybchronization token vector
- */
-void _sincTokensDecr(int sincTokens[]) {
-    for (int i = 0; i < N_TOKEN_CLASS; i++) {
-        sincTokens[i] -= (sincTokens[i] >= 0);
+        linkedListDestroy( &sincTokens[i] );
     }
 }
 
@@ -137,20 +114,43 @@ void _sincTokensDecr(int sincTokens[]) {
  *
  * @param sincTokens synchronization token vector
  */
-void _sincTokensAdd(int sincTokens[], const int toAdd[], unsigned long toAddSize) {
+void _sincTokensAdd(Node* sincTokens[], const int toAdd[], unsigned long toAddSize) {
     for (unsigned long i = 0; i < toAddSize; i++) {
-        sincTokens[toAdd[i]] = 0;
+        linkedListPushBack( &sincTokens[toAdd[i]] );
     }
 }
+
+/**
+ * @brief Increment depth of synchronization tokens.
+ *
+ * @param sincTokens synchronization token vector
+ */
+void _sincTokensIncr(Node* sincTokens[]) {
+    for (int i = 0; i < N_TOKEN_CLASS; i++) {
+        linkedListAdd( &sincTokens[i], 1 );
+    }
+}
+
+/**
+ * @brief Decrement depth of synchronization tokens.
+ *
+ * @param sincTokens sybchronization token vector
+ */
+void _sincTokensDecr(Node*  sincTokens[]) {
+    for (int i = 0; i < N_TOKEN_CLASS; i++) {
+        linkedListAdd( &sincTokens[i], -1 );
+    }
+}
+
 
 /**
  * @brief Remove synchronization tokens.
  *
  * @param sincTokens synchronization token vector
  */
-void _sincTokensRemove(int sincTokens[], const int toRemove[], unsigned long toRemoveSize) {
+void _sincTokensRemove(Node*  sincTokens[], const int toRemove[], unsigned long toRemoveSize) {
     for (unsigned long i = 0; i < toRemoveSize; i++) {
-        sincTokens[toRemove[i]] = -1;
+        linkedListPop( &sincTokens[toRemove[i]] );
     }
 }
 
@@ -164,7 +164,7 @@ void compile(Parser* parser) {
     parser->errorCount += nextToken(&parser->lexer, parser->output);
 
     // initialize synchronization tokens vector
-    int sincTokens[N_TOKEN_CLASS];
+    Node* sincTokens[N_TOKEN_CLASS];
     _sincTokensInit(sincTokens);
 
     // starts building the implicit parse tree
@@ -176,6 +176,8 @@ void compile(Parser* parser) {
     if (parser->lexer.fscanfFlag != EOF) {
         _error(parser, LAMBDA, sincTokens);
     }
+
+    _sincTokensDestroy(sincTokens);
 }
 
 /**
@@ -183,7 +185,7 @@ void compile(Parser* parser) {
  * <programa> ::= program ident ; <corpo> .
  * @param parser initialized parser instance
  */
-void _programa(Parser* parser, int sincTokens[]) {
+void _programa(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
 
@@ -219,7 +221,7 @@ void _programa(Parser* parser, int sincTokens[]) {
  * <corpo> ::= <dc> begin <comandos> end
  * @param parser initialized parser instance
  */
-void _corpo(Parser* parser, int sincTokens[]) {
+void _corpo(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -244,7 +246,7 @@ void _corpo(Parser* parser, int sincTokens[]) {
  * <dc> ::= <dc_c> <dc_v> <dc_p>
  * @param parser initialized parser instance
  */
-void _dc(Parser* parser, int sincTokens[]) {
+void _dc(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -259,7 +261,7 @@ void _dc(Parser* parser, int sincTokens[]) {
  * <dc_c> ::= const ident = <numero>  ; <dc_c> | lambda
  * @param parser initialized parser instance
  */
-void _dc_c(Parser* parser, int sincTokens[]) {
+void _dc_c(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -296,7 +298,7 @@ void _dc_c(Parser* parser, int sincTokens[]) {
  * <dc_v> ::= var <variaveis> : <tipo_var> ; <dc_v> | lambda
  * @param parser initialized parser instance
  */
-void _dc_v(Parser* parser, int sincTokens[]) {
+void _dc_v(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -330,7 +332,7 @@ void _dc_v(Parser* parser, int sincTokens[]) {
  * <tipo_var> ::= real | integer
  * @param parser initialized parser instance
  */
-void _tipo_var(Parser* parser, int sincTokens[]) {
+void _tipo_var(Parser* parser, Node*  sincTokens[]) {
     
     _sincTokensIncr(sincTokens);
 
@@ -349,7 +351,7 @@ void _tipo_var(Parser* parser, int sincTokens[]) {
  * <variaveis> ::= ident <mais_var>
  * @param parser initialized parser instance
  */
-void _variaveis(Parser* parser, int sincTokens[]) {
+void _variaveis(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -368,7 +370,7 @@ void _variaveis(Parser* parser, int sincTokens[]) {
  * <mais_var> ::= , <variaveis> | lambda
  * @param parser initialized parser instance
  */
-void _mais_var(Parser* parser, int sincTokens[]) {
+void _mais_var(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -388,7 +390,7 @@ void _mais_var(Parser* parser, int sincTokens[]) {
  * <dc_p> ::= procedure ident <parametros> ; <corpo_p> <dc_p> | lambda
  * @param parser initialized parser instance
  */
-void _dc_p(Parser* parser, int sincTokens[]) {
+void _dc_p(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -421,7 +423,7 @@ void _dc_p(Parser* parser, int sincTokens[]) {
  * <parametros> ::= ( <lista_par> ) | lambda
  * @param parser initialized parser instance
  */
-void _parametros(Parser* parser, int sincTokens[]) {
+void _parametros(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -446,7 +448,7 @@ void _parametros(Parser* parser, int sincTokens[]) {
  * <lista_par> ::= <variaveis> : <tipo_var> <mais_par>
  * @param parser initialized parser instance
  */
-void _lista_par(Parser* parser, int sincTokens[]) {
+void _lista_par(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -468,7 +470,7 @@ void _lista_par(Parser* parser, int sincTokens[]) {
  * <mais_par> ::= ; <lista_par> | lambda
  * @param parser initialized parser instance
  */
-void _mais_par(Parser* parser, int sincTokens[]) {
+void _mais_par(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -488,7 +490,7 @@ void _mais_par(Parser* parser, int sincTokens[]) {
  * <corpo_p> ::= <dc_loc> begin <comandos> end ;
  * @param parser initialized parser instance
  */
-void _corpo_p(Parser* parser, int sincTokens[]) {
+void _corpo_p(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -519,7 +521,7 @@ void _corpo_p(Parser* parser, int sincTokens[]) {
  * <dc_loc> ::= <dc_v>
  * @param parser initialized parser instance
  */
-void _dc_loc(Parser* parser, int sincTokens[]) {
+void _dc_loc(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -532,7 +534,7 @@ void _dc_loc(Parser* parser, int sincTokens[]) {
  * <lista_arg> ::= ( <argumentos> ) | lambda
  * @param parser initialized parser instance
  */
-void _lista_arg(Parser* parser, int sincTokens[]) {
+void _lista_arg(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -557,7 +559,7 @@ void _lista_arg(Parser* parser, int sincTokens[]) {
  * <argumentos> ::= ident <mais_ident>
  * @param parser initialized parser instance
  */
-void _argumentos(Parser* parser, int sincTokens[]) {
+void _argumentos(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -576,7 +578,7 @@ void _argumentos(Parser* parser, int sincTokens[]) {
  * <mais_ident> ::= ; <argumentos> | lambda
  * @param parser initialized parser instance
  */
-void _mais_ident(Parser* parser, int sincTokens[]) {
+void _mais_ident(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -596,7 +598,7 @@ void _mais_ident(Parser* parser, int sincTokens[]) {
  * <pfalsa> ::= else <cmd> | lambda
  * @param parser initialized parser instance
  */
-void _pfalsa(Parser* parser, int sincTokens[]) {
+void _pfalsa(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -616,7 +618,7 @@ void _pfalsa(Parser* parser, int sincTokens[]) {
  * <comandos> ::= <cmd> ; <comandos> | lambda
  * @param parser initialized parser instance
  */
-void _comandos(Parser* parser, int sincTokens[]) {
+void _comandos(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -653,7 +655,7 @@ void _comandos(Parser* parser, int sincTokens[]) {
             begin <comandos> end
  * @param parser initialized parser instance
  */
-void _cmd(Parser* parser, int sincTokens[]) {
+void _cmd(Parser* parser, Node*  sincTokens[]) {
     
     _sincTokensIncr(sincTokens);
     
@@ -759,7 +761,7 @@ void _cmd(Parser* parser, int sincTokens[]) {
  * <pos_ident> ::= := <expressao> | <lista_arg>
  * @param parser initialized parser instance
  */
-void _pos_ident(Parser* parser, int sincTokens[]) {
+void _pos_ident(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
 
@@ -782,7 +784,7 @@ void _pos_ident(Parser* parser, int sincTokens[]) {
  * <condicao> ::= <expressao> <relacao> <expressao>
  * @param parser initialized parser instance
  */
-void _condicao(Parser* parser, int sincTokens[]) {
+void _condicao(Parser* parser, Node*  sincTokens[]) {
     
     _sincTokensIncr(sincTokens);
 
@@ -797,7 +799,7 @@ void _condicao(Parser* parser, int sincTokens[]) {
  * <relacao> ::= = | <> | >= | <= | > | <
  * @param parser initialized parser instance
  */
-void _relacao(Parser* parser, int sincTokens[]) {
+void _relacao(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
 
@@ -814,7 +816,7 @@ void _relacao(Parser* parser, int sincTokens[]) {
  * <expressao> ::= <termo> <outros_termos>
  * @param parser initialized parser instance
  */
-void _expressao(Parser* parser, int sincTokens[]) {
+void _expressao(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -828,7 +830,7 @@ void _expressao(Parser* parser, int sincTokens[]) {
  * <op_un> ::= + | - | lambda
  * @param parser initialized parser instance
  */
-void _op_un(Parser* parser, int sincTokens[]) {
+void _op_un(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
 
@@ -843,7 +845,7 @@ void _op_un(Parser* parser, int sincTokens[]) {
  * <outros_termos> ::= <op_ad> <termo> <outros_termos> | lambda
  * @param parser initialized parser instance
  */
-void _outros_termos(Parser* parser, int sincTokens[]) {
+void _outros_termos(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -860,7 +862,7 @@ void _outros_termos(Parser* parser, int sincTokens[]) {
  * <op_ad> ::= + | -
  * @param parser initialized parser instance
  */
-void _op_ad(Parser* parser, int sincTokens[]) {
+void _op_ad(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
 
@@ -877,7 +879,7 @@ void _op_ad(Parser* parser, int sincTokens[]) {
  * <termo> ::= <op_un> <fator> <mais_fatores>
  * @param parser initialized parser instance
  */
-void _termo(Parser* parser, int sincTokens[]) {
+void _termo(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -892,7 +894,7 @@ void _termo(Parser* parser, int sincTokens[]) {
  * <mais_fatores> ::= <op_mul> <fator> <mais_fatores> | lambda
  * @param parser initialized parser instance
  */
-void _mais_fatores(Parser* parser, int sincTokens[]) {
+void _mais_fatores(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
 
@@ -909,7 +911,7 @@ void _mais_fatores(Parser* parser, int sincTokens[]) {
  * <op_mul> ::= *|/
  * @param parser initialized parser instance
  */
-void _op_mul(Parser* parser, int sincTokens[]) {
+void _op_mul(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -926,7 +928,7 @@ void _op_mul(Parser* parser, int sincTokens[]) {
  * <fator> ::= ident | <numero> | (<expressao>)
  * @param parser initialized parser instance
  */
-void _fator(Parser* parser, int sincTokens[]) {
+void _fator(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
     
@@ -951,7 +953,7 @@ void _fator(Parser* parser, int sincTokens[]) {
  * <numero> ::= numero_int | numero_real
  * @param parser initialized parser instance
  */
-void _numero(Parser* parser, int sincTokens[]) {
+void _numero(Parser* parser, Node*  sincTokens[]) {
 
     _sincTokensIncr(sincTokens);
 
@@ -970,7 +972,7 @@ void _numero(Parser* parser, int sincTokens[]) {
  * @param parser initialized parser instance
  * @param expectedTokenClass expected token class
  */
-void _error(Parser* parser, int expectedTokenClass, int sincTokens[]) {
+void _error(Parser* parser, int expectedTokenClass, Node*  sincTokens[]) {
     
     parser->errorCount++;
 
@@ -990,6 +992,6 @@ void _error(Parser* parser, int expectedTokenClass, int sincTokens[]) {
 
     stringDestroy(&errorMsg);
 
-    while (sincTokens[parser->lexer.tokenClass] == -1)
+    while ( linkedListPeak( sincTokens[parser->lexer.tokenClass] ) == -1 )
         parser->errorCount += nextToken(&parser->lexer, parser->output);
 }
