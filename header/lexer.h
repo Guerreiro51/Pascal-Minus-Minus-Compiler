@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #include "../header/string.h"
 
@@ -56,6 +57,8 @@ enum TOKEN_CLASS { LAMBDA,
                    WRITE,
                    WHILE,
                    ERROR };
+
+enum MULTIPLE_EXPECTED {NUMBER = INT_MIN, TYPES, COMMAND};
 
 // defines the structures necessary for lexer operation
 typedef struct {

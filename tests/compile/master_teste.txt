@@ -44,10 +44,25 @@ begin
     
     if b=a-c then
     begin
-        for a:=3 to b-4 do 
+        for a:=3 to b-4 do
         begin
-
-            write(a);
+            while(a*c <> a) do
+            begin
+                for a:=3 to b-4 do
+                begin
+                    for a:=3 to b-4 do
+                    begin
+                        while(a*c <> a) do
+                        begin
+                            for a:=3 to b-4 do
+                            begin
+                                read(a, c, b);
+                            end;
+                        end    
+                    end;
+                end;
+            end;    
         end;
-    end
+    end;
+    else c:=a/5.5;
 end.

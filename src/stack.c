@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/**
+ * @brief Creates a stack with one element in it
+ * 
+ * @return Node* Pointer to the beginning of the stack
+ */
 Node* stackInit() {
     Node* head = (Node*)malloc(sizeof(Node));
     head->depth = 0;
@@ -11,6 +16,11 @@ Node* stackInit() {
     return head;
 }
 
+/**
+ * @brief Destroy the stack
+ * 
+ * @param head adrress of the pointer to the beginning of the stack
+ */
 void stackDestroy(Node** head) {
     if (!head)
         return;
@@ -20,8 +30,14 @@ void stackDestroy(Node** head) {
 
     stackDestroy(&((*head)->next));
     free(*head);
+    *head = NULL;
 }
 
+/**
+ * @brief Pushes an element into the stack. Creates the stack if empty.
+ * 
+ * @param head adrress of the pointer to the beginning of the stack
+ */
 void stackPush(Node** head) {
     if (!head)
         return;
@@ -37,6 +53,12 @@ void stackPush(Node** head) {
     }
 }
 
+/**
+ * @brief Peaks at the stack
+ * 
+ * @param head pointer to the beginning of the stack
+ * @return int depth in the last element of the stack
+ */
 int stackPeak(Node* head) {
     if (!head)
         return -1;  // not a synchronization token
@@ -47,6 +69,11 @@ int stackPeak(Node* head) {
     return stackPeak(head->next);
 }
 
+/**
+ * @brief Pops the stack
+ * 
+ * @param head adrress of the pointer to the beginning of the stack
+ */
 void stackPop(Node** head) {
     if (!(*head))
         return;
@@ -65,6 +92,12 @@ void stackPop(Node** head) {
     }
 }
 
+/**
+ * @brief Adds a value to all the elements in the stack
+ * 
+ * @param head adrress of the pointer to the beginning of the stack
+ * @param toAdd value to add to all elements of the stack
+ */
 void stackAdd(Node** head, int toAdd) {
     if (!head)
         return;

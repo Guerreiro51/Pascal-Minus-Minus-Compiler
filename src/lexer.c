@@ -435,7 +435,18 @@ const char* lexerTokenClassUserFriendlyName(int tokenClass) {
                                            ":=", ":", ";", ",", "(", ")", ".", "identifier", "begin",
                                            "const", "do", "end", "else", "if", "'integer'", "for", "program", "procedure",
                                            "'real'", "read", "then", "to", "var", "write", "while", "ERROR"};
-    return tokenClassName[tokenClass];
+    
+    switch(tokenClass) {
+        case NUMBER:
+            return "number";
+        case TYPES:
+            return "type-specifier";
+        case COMMAND:
+            return "command";
+        default:
+            return tokenClassName[tokenClass];
+    }
+    
 }
 
 /**

@@ -332,10 +332,8 @@ void _tipo_var(Parser* parser, Node* sincTokens[]) {
 
     if (parser->lexer.tokenClass == REAL || parser->lexer.tokenClass == INTEGER) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-    } else {  // change
-        // parser->errorCount++;
-        // printf("Parser error on line %d col %d: expected real or integer but found %s\n", parser->lexer.currLine, lexerCurrColWithoutRetreat(&parser->lexer), lexerBuffer(&parser->lexer));
-        FOLLOWERS(REAL, SEMICOLON, CLOSE_PAR)
+    } else {  // multiple type
+        FOLLOWERS(TYPES, SEMICOLON, CLOSE_PAR)
     }
 
     _sincTokensDecr(sincTokens);
@@ -736,7 +734,7 @@ void _cmd(Parser* parser, Node* sincTokens[]) {
             FOLLOWERS(END, SEMICOLON)
         }
     } else {
-        FOLLOWERS(SEMICOLON, SEMICOLON)  // change expected token
+        FOLLOWERS(COMMAND, SEMICOLON)  // multiple type
     }
 
     _sincTokensDecr(sincTokens);
@@ -943,9 +941,8 @@ void _numero(Parser* parser, Node* sincTokens[]) {
 
     if (parser->lexer.tokenClass == N_INTEGER || parser->lexer.tokenClass == N_REAL) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
-    } else {  // change
-        parser->errorCount++;
-        printf("Parser error on line %d col %d: expected N_INTEGER or N_REAL but found %s\n", parser->lexer.currLine, lexerCurrColWithoutRetreat(&parser->lexer), lexerBuffer(&parser->lexer));
+    } else {  // multiple type
+        FOLLOWERS(NUMBER, SEMICOLON, OP_MULT)
     }
 
     _sincTokensDecr(sincTokens);
