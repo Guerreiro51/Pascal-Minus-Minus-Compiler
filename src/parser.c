@@ -12,29 +12,37 @@
 #include "../header/string.h"
 
 /**
- * @brief Default error function call.
+ * @brief Panic mode. When the expected token isn't found, his followers are added to the 
+ * synchronization tokens vector, and the _error function calls the lexer repeatedly until
+ * a synchronization token is found. Then, the new synchronization tokens are removed and, 
+ * depending on the level of synchronization, the current rule returns while level > 0, 
+ * with the assistance of the NEXTRULE macro, or continues if level == 0, disabling the
+ * panic mode.
  *
  * @param expectedTokenClass expected token
  * @param ... synchronization tokens that must be added
  */
-#define FOLLOWERS(expectedTokenClass, ...)                                         \
-    {                                                                              \
-        static const int followers[] = {__VA_ARGS__};                              \
-        _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));    \
-        _error(parser, expectedTokenClass, sincTokens);                            \
-        int level = stackPeak(sincTokens[parser->lexer.tokenClass]);          \
-        _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int)); \
-        if (level != 0) {                                                          \
-            _sincTokensDecr(sincTokens);                                           \
-            return;                                                                \
-        }                                                                          \
-        parser->panic = false;                                                     \
+#define PANICMODE(expectedTokenClass, ...)                                          \
+    {                                                                               \
+        static const int followers[] = {__VA_ARGS__};                               \
+        _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));     \
+        _error(parser, expectedTokenClass, sincTokens);                             \
+        int level = stackPeak(sincTokens[parser->lexer.tokenClass]);                \
+        _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int));  \
+        if (level != 0) {                                                           \
+            _sincTokensDecr(sincTokens);                                            \
+            return;                                                                 \
+        }                                                                           \
+        parser->panic = false;                                                      \
     }
 
 /**
- * @brief Default treatment of next rule call.
- *
- * @param _rule next rule function name
+ * @brief Default treatment of next rule call. First we add the followers of the rule to sincTokens
+ * and call the rule. After that, we remove the added tokens. Furthermore, we must check whether we are
+ * in panic mode or not, if so, the level of the synchronization token must be checked to identify if the 
+ * synchronization occurs in the current rule or not.
+ * 
+ * @param rule next rule function name
  * @param ... followers of the corresponding variable
  */
 #define NEXTRULE(rule, ...)                                                                         \
@@ -42,8 +50,8 @@
         static const int followers[] = {__VA_ARGS__};                                               \
         _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));                     \
         rule(parser, sincTokens);                                                                   \
-        int return_flag = 0;                                                                        \
-        if (parser->panic && stackPeak(sincTokens[parser->lexer.tokenClass]) > 0) {            \
+        int return_flag = 0; /*check if panic mode is active and level is greater than 0*/          \
+        if (parser->panic && stackPeak(sincTokens[parser->lexer.tokenClass]) > 0) {                 \
             return_flag = 1;                                                                        \
         }                                                                                           \
         _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int));                  \
@@ -91,10 +99,13 @@ void parserDestroy(Parser* parser) {
 }
 
 /**
- * @brief Initialize vector of synchronization tokens, -1 indicates
- * the token isn't a synchronization token in the current context.
- * Values greater then or equal to 0 indicate the depth of the synchronization
- * token.
+ * @brief Initialize vector of synchronization tokens. Each element is a stack
+ * that records all the levels at which the corresponding token is a synchronization
+ * symbol. Initially, there are no synchronization symbols, to all elements of the vector
+ * are null. 
+ * On the elements of the stack, values greater then or equal to 0 indicate the depth 
+ * of the synchronization, while NULL stacks indicates that that token is not a synchronization 
+ * token at the moment
  *
  * @param sincTokens synchronization token vector
  */
@@ -104,7 +115,7 @@ void _sincTokensInit(Node* sincTokens[]) {
 }
 
 /**
- * @brief Destroy vector of synchronization tokens.
+ * @brief Destroy stack of synchronization tokens.
  *
  * @param sincTokens synchronization token vector
  */
@@ -190,17 +201,17 @@ void _programa(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == PROGRAM) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(PROGRAM, ID)
+        PANICMODE(PROGRAM, ID)
     }
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(ID, SEMICOLON)
+        PANICMODE(ID, SEMICOLON)
     }
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(SEMICOLON, CONST, VAR, PROCEDURE, BEGIN)
+        PANICMODE(SEMICOLON, CONST, VAR, PROCEDURE, BEGIN)
     }
 
     NEXTRULE(_corpo, DOT)
@@ -208,7 +219,7 @@ void _programa(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == DOT) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(DOT, LAMBDA)
+        PANICMODE(DOT, LAMBDA)
     }
 
     _sincTokensDecr(sincTokens);
@@ -226,14 +237,14 @@ void _corpo(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == BEGIN) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(BEGIN, READ, WRITE, WHILE, IF, FOR, ID, BEGIN, END)
+        PANICMODE(BEGIN, READ, WRITE, WHILE, IF, FOR, ID, BEGIN, END)
     }
 
     NEXTRULE(_comandos, END)
     if (parser->lexer.tokenClass == END) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(END, DOT)
+        PANICMODE(END, DOT)
     }
 
     _sincTokensDecr(sincTokens);
@@ -271,19 +282,19 @@ void _dc_c(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(ID, ASSIGN)
+        PANICMODE(ID, ASSIGN)
     }
     if ( !strcmp(parser->lexer.buffer.str, "=") ) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(EQUALS, N_INTEGER, N_REAL)
+        PANICMODE(EQUALS, N_INTEGER, N_REAL)
     }
 
     NEXTRULE(_numero, SEMICOLON)
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(SEMICOLON, CONST, BEGIN, VAR, PROCEDURE);
+        PANICMODE(SEMICOLON, CONST, BEGIN, VAR, PROCEDURE);
     }
     NEXTRULE(_dc_c, BEGIN, VAR, PROCEDURE)
 
@@ -309,14 +320,14 @@ void _dc_v(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == DECLARE_TYPE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(DECLARE_TYPE, REAL, INTEGER)
+        PANICMODE(DECLARE_TYPE, REAL, INTEGER)
     }
 
     NEXTRULE(_tipo_var, SEMICOLON)
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(SEMICOLON, VAR, BEGIN, PROCEDURE)
+        PANICMODE(SEMICOLON, VAR, BEGIN, PROCEDURE)
     }
     NEXTRULE(_dc_v, BEGIN, PROCEDURE)
 
@@ -334,7 +345,7 @@ void _tipo_var(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == REAL || parser->lexer.tokenClass == INTEGER) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {  // multiple type
-        FOLLOWERS(TYPES, SEMICOLON, CLOSE_PAR)
+        PANICMODE(TYPES, SEMICOLON, CLOSE_PAR)
     }
 
     _sincTokensDecr(sincTokens);
@@ -351,7 +362,7 @@ void _variaveis(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(ID, COLON, DECLARE_TYPE, CLOSE_PAR)
+        PANICMODE(ID, COLON, DECLARE_TYPE, CLOSE_PAR)
     }
     NEXTRULE(_mais_var, DECLARE_TYPE, CLOSE_PAR)
 
@@ -395,14 +406,14 @@ void _dc_p(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(ID, OPEN_PAR, SEMICOLON)
+        PANICMODE(ID, OPEN_PAR, SEMICOLON)
     }
 
     NEXTRULE(_parametros, SEMICOLON)
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(SEMICOLON, VAR, BEGIN)
+        PANICMODE(SEMICOLON, VAR, BEGIN)
     }
     NEXTRULE(_corpo_p, BEGIN, PROCEDURE)
     NEXTRULE(_dc_p, BEGIN)
@@ -429,7 +440,7 @@ void _parametros(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == CLOSE_PAR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(CLOSE_PAR, SEMICOLON)
+        PANICMODE(CLOSE_PAR, SEMICOLON)
     }
 
     _sincTokensDecr(sincTokens);
@@ -447,7 +458,7 @@ void _lista_par(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == DECLARE_TYPE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(DECLARE_TYPE, REAL, INTEGER)
+        PANICMODE(DECLARE_TYPE, REAL, INTEGER)
     }
     NEXTRULE(_tipo_var, COLON, DECLARE_TYPE, CLOSE_PAR)
     NEXTRULE(_mais_par, CLOSE_PAR)
@@ -486,20 +497,20 @@ void _corpo_p(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == BEGIN) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(BEGIN, READ, WRITE, WHILE, IF, FOR, ID, BEGIN, END)
+        PANICMODE(BEGIN, READ, WRITE, WHILE, IF, FOR, ID, BEGIN, END)
     }
 
     NEXTRULE(_comandos, END)
     if (parser->lexer.tokenClass == END) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(END, SEMICOLON)
+        PANICMODE(END, SEMICOLON)
     }
 
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(SEMICOLON, BEGIN, PROCEDURE)
+        PANICMODE(SEMICOLON, BEGIN, PROCEDURE)
     }
 
     _sincTokensDecr(sincTokens);
@@ -537,7 +548,7 @@ void _lista_arg(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == CLOSE_PAR) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(CLOSE_PAR, SEMICOLON)
+        PANICMODE(CLOSE_PAR, SEMICOLON)
     }
 
     _sincTokensDecr(sincTokens);
@@ -554,7 +565,7 @@ void _argumentos(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(ID, SEMICOLON, CLOSE_PAR)
+        PANICMODE(ID, SEMICOLON, CLOSE_PAR)
     }
     NEXTRULE(_mais_ident, CLOSE_PAR)
 
@@ -622,7 +633,7 @@ void _comandos(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == SEMICOLON) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(SEMICOLON, READ, WRITE, WHILE, IF, FOR, ID, BEGIN, END)
+        PANICMODE(SEMICOLON, READ, WRITE, WHILE, IF, FOR, ID, BEGIN, END)
     }
     NEXTRULE(_comandos, END)
 
@@ -648,44 +659,44 @@ void _cmd(Parser* parser, Node* sincTokens[]) {
         if (parser->lexer.tokenClass == OPEN_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(OPEN_PAR, ID)
+            PANICMODE(OPEN_PAR, ID)
         }
         NEXTRULE(_variaveis, CLOSE_PAR)
         if (parser->lexer.tokenClass == CLOSE_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(CLOSE_PAR, SEMICOLON)
+            PANICMODE(CLOSE_PAR, SEMICOLON)
         }
     } else if (parser->lexer.tokenClass == WRITE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
         if (parser->lexer.tokenClass == OPEN_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(OPEN_PAR, ID)
+            PANICMODE(OPEN_PAR, ID)
         }
         NEXTRULE(_variaveis, CLOSE_PAR)
         if (parser->lexer.tokenClass == CLOSE_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(CLOSE_PAR, SEMICOLON)
+            PANICMODE(CLOSE_PAR, SEMICOLON)
         }
     } else if (parser->lexer.tokenClass == WHILE) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
         if (parser->lexer.tokenClass == OPEN_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(OPEN_PAR, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
+            PANICMODE(OPEN_PAR, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
         }
         NEXTRULE(_condicao, CLOSE_PAR)
         if (parser->lexer.tokenClass == CLOSE_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(CLOSE_PAR, DO)
+            PANICMODE(CLOSE_PAR, DO)
         }
         if (parser->lexer.tokenClass == DO) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(DO, READ, WRITE, WHILE, IF, FOR, ID, BEGIN)
+            PANICMODE(DO, READ, WRITE, WHILE, IF, FOR, ID, BEGIN)
         }
         NEXTRULE(_cmd, SEMICOLON)
     } else if (parser->lexer.tokenClass == IF) {
@@ -694,7 +705,7 @@ void _cmd(Parser* parser, Node* sincTokens[]) {
         if (parser->lexer.tokenClass == THEN) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(THEN, READ, WRITE, WHILE, IF, FOR, ID, BEGIN)
+            PANICMODE(THEN, READ, WRITE, WHILE, IF, FOR, ID, BEGIN)
         }
         NEXTRULE(_cmd, ELSE, SEMICOLON)
         NEXTRULE(_pfalsa, SEMICOLON)
@@ -703,24 +714,24 @@ void _cmd(Parser* parser, Node* sincTokens[]) {
         if (parser->lexer.tokenClass == ID) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(ID, ASSIGN)
+            PANICMODE(ID, ASSIGN)
         }
         if (parser->lexer.tokenClass == ASSIGN) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(ASSIGN, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
+            PANICMODE(ASSIGN, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
         }
         NEXTRULE(_expressao, TO)
         if (parser->lexer.tokenClass == TO) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(TO, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
+            PANICMODE(TO, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
         }
         NEXTRULE(_expressao, DO)
         if (parser->lexer.tokenClass == DO) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(DO, READ, WRITE, WHILE, IF, FOR, ID, BEGIN)
+            PANICMODE(DO, READ, WRITE, WHILE, IF, FOR, ID, BEGIN)
         }
         NEXTRULE(_cmd, SEMICOLON)
     } else if (parser->lexer.tokenClass == ID) {
@@ -732,10 +743,10 @@ void _cmd(Parser* parser, Node* sincTokens[]) {
         if (parser->lexer.tokenClass == END) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(END, SEMICOLON)
+            PANICMODE(END, SEMICOLON)
         }
     } else {
-        FOLLOWERS(COMMAND, SEMICOLON)  // multiple type
+        PANICMODE(COMMAND, SEMICOLON)  // multiple type
     }
 
     _sincTokensDecr(sincTokens);
@@ -756,7 +767,7 @@ void _pos_ident(Parser* parser, Node* sincTokens[]) {
     } else if (parser->lexer.tokenClass == ASSIGN) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(ASSIGN, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
+        PANICMODE(ASSIGN, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
     }
     NEXTRULE(_expressao, SEMICOLON, RELATION, CLOSE_PAR, THEN, TO, DO)
 
@@ -789,7 +800,7 @@ void _relacao(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == RELATION) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(RELATION, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
+        PANICMODE(RELATION, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
     }
 
     _sincTokensDecr(sincTokens);
@@ -852,7 +863,7 @@ void _op_ad(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == OP_ADD) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(OP_ADD, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
+        PANICMODE(OP_ADD, OP_UN, ID, OPEN_PAR, N_INTEGER, N_REAL)
     }
 
     _sincTokensDecr(sincTokens);
@@ -901,7 +912,7 @@ void _op_mul(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == OP_MULT) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(OP_MULT, ID, OPEN_PAR, N_INTEGER, N_REAL)
+        PANICMODE(OP_MULT, ID, OPEN_PAR, N_INTEGER, N_REAL)
     }
 
     _sincTokensDecr(sincTokens);
@@ -923,7 +934,7 @@ void _fator(Parser* parser, Node* sincTokens[]) {
         if (parser->lexer.tokenClass == CLOSE_PAR) {
             parser->errorCount += nextToken(&parser->lexer, parser->output);
         } else {
-            FOLLOWERS(CLOSE_PAR, OP_MULT)
+            PANICMODE(CLOSE_PAR, OP_MULT)
         }
     } else {
         NEXTRULE(_numero, SEMICOLON, OP_MULT)
@@ -943,7 +954,7 @@ void _numero(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == N_INTEGER || parser->lexer.tokenClass == N_REAL) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {  // multiple type
-        FOLLOWERS(NUMBER, SEMICOLON, OP_MULT)
+        PANICMODE(NUMBER, SEMICOLON, OP_MULT)
     }
 
     _sincTokensDecr(sincTokens);
@@ -958,6 +969,7 @@ void _numero(Parser* parser, Node* sincTokens[]) {
 void _error(Parser* parser, int expectedTokenClass, Node* sincTokens[]) {
     parser->errorCount++;
 
+    // Print error
     String errorMsg;
     stringInit(&errorMsg);
     stringAppendCstr(&errorMsg, "Parser error on line ");
@@ -980,6 +992,7 @@ void _error(Parser* parser, int expectedTokenClass, Node* sincTokens[]) {
 
     stringDestroy(&errorMsg);
 
+    // Panic mode
     parser->panic = true;
     while (stackPeak(sincTokens[parser->lexer.tokenClass]) == -1)
         parser->errorCount += nextToken(&parser->lexer, parser->output);
