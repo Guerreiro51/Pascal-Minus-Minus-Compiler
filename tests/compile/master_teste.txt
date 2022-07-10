@@ -25,5 +25,29 @@ begin
     begin
         write(a);
     end;
-    while(a > c) do c := a + 1;
+    while(b <= c) do
+    begin
+        write(a);
+    end;
+    while(b >= c) do
+    begin
+        write(a);
+    end;
+    while(b = c) do
+    begin
+        write(a);
+    end;
+    while(a < c) do c := a + 1;
+    while(a > c) do c := a - 1;
+    while(a >= c) do c := a * 1;
+    while(a <= c) do c := 2 / 1;
+    
+    if b=a-c then
+    begin
+        for a:=3 to b-4 do 
+        begin
+
+            write(a);
+        end;
+    end
 end.

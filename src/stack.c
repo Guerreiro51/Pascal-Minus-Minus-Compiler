@@ -1,9 +1,9 @@
-#include "../header/linkedList.h"
+#include "../header/stack.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-Node* linkedListInit() {
+Node* stackInit() {
     Node* head = (Node*)malloc(sizeof(Node));
     head->depth = 0;
     head->next = NULL;
@@ -11,43 +11,43 @@ Node* linkedListInit() {
     return head;
 }
 
-void linkedListDestroy(Node** head) {
+void stackDestroy(Node** head) {
     if (!head)
         return;
 
     if (!(*head))
         return;
 
-    linkedListDestroy(&((*head)->next));
+    stackDestroy(&((*head)->next));
     free(*head);
 }
 
-void linkedListPushBack(Node** head) {
+void stackPush(Node** head) {
     if (!head)
         return;
 
     if (!(*head)) {  // empty list, become head
-        *head = linkedListInit();
+        *head = stackInit();
         return;
     }
-    if (!(*head)->next) {  // last node, pushback
-        (*head)->next = linkedListInit();
+    if (!(*head)->next) {  // last node, push
+        (*head)->next = stackInit();
     } else {
-        linkedListPushBack(&(*head)->next);
+        stackPush(&(*head)->next);
     }
 }
 
-int linkedListPeak(Node* head) {
+int stackPeak(Node* head) {
     if (!head)
         return -1;  // not a synchronization token
 
     if (!head->next)
         return head->depth;
 
-    return linkedListPeak(head->next);
+    return stackPeak(head->next);
 }
 
-void linkedListPop(Node** head) {
+void stackPop(Node** head) {
     if (!(*head))
         return;
 
@@ -61,11 +61,11 @@ void linkedListPop(Node** head) {
         free((*head)->next);
         (*head)->next = NULL;
     } else {
-        linkedListPop(&((*head)->next));
+        stackPop(&((*head)->next));
     }
 }
 
-void linkedListAdd(Node** head, int toAdd) {
+void stackAdd(Node** head, int toAdd) {
     if (!head)
         return;
 
@@ -73,5 +73,5 @@ void linkedListAdd(Node** head, int toAdd) {
         return;
 
     (*head)->depth += toAdd;
-    linkedListAdd(&((*head)->next), toAdd);
+    stackAdd(&((*head)->next), toAdd);
 }

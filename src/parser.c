@@ -21,7 +21,7 @@
         static const int followers[] = {__VA_ARGS__};                              \
         _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));    \
         _error(parser, expectedTokenClass, sincTokens);                            \
-        int level = linkedListPeak(sincTokens[parser->lexer.tokenClass]);          \
+        int level = stackPeak(sincTokens[parser->lexer.tokenClass]);          \
         _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int)); \
         if (level != 0) {                                                          \
             _sincTokensDecr(sincTokens);                                           \
@@ -42,7 +42,7 @@
         _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));                     \
         rule(parser, sincTokens);                                                                   \
         int return_flag = 0;                                                                        \
-        if (parser->panic && linkedListPeak(sincTokens[parser->lexer.tokenClass]) > 0) {            \
+        if (parser->panic && stackPeak(sincTokens[parser->lexer.tokenClass]) > 0) {            \
             return_flag = 1;                                                                        \
         }                                                                                           \
         _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int));                  \
@@ -109,7 +109,7 @@ void _sincTokensInit(Node* sincTokens[]) {
  */
 void _sincTokensDestroy(Node* sincTokens[]) {
     for (int i = 0; i < N_TOKEN_CLASS; i++)
-        linkedListDestroy(&sincTokens[i]);
+        stackDestroy(&sincTokens[i]);
 }
 
 /**
@@ -119,7 +119,7 @@ void _sincTokensDestroy(Node* sincTokens[]) {
  */
 void _sincTokensAdd(Node* sincTokens[], const int toAdd[], unsigned long toAddSize) {
     for (unsigned long i = 0; i < toAddSize; i++)
-        linkedListPushBack(&sincTokens[toAdd[i]]);
+        stackPush(&sincTokens[toAdd[i]]);
 }
 
 /**
@@ -129,7 +129,7 @@ void _sincTokensAdd(Node* sincTokens[], const int toAdd[], unsigned long toAddSi
  */
 void _sincTokensIncr(Node* sincTokens[]) {
     for (int i = 0; i < N_TOKEN_CLASS; i++)
-        linkedListAdd(&sincTokens[i], 1);
+        stackAdd(&sincTokens[i], 1);
 }
 
 /**
@@ -139,7 +139,7 @@ void _sincTokensIncr(Node* sincTokens[]) {
  */
 void _sincTokensDecr(Node* sincTokens[]) {
     for (int i = 0; i < N_TOKEN_CLASS; i++)
-        linkedListAdd(&sincTokens[i], -1);
+        stackAdd(&sincTokens[i], -1);
 }
 
 /**
@@ -149,7 +149,7 @@ void _sincTokensDecr(Node* sincTokens[]) {
  */
 void _sincTokensRemove(Node* sincTokens[], const int toRemove[], unsigned long toRemoveSize) {
     for (unsigned long i = 0; i < toRemoveSize; i++)
-        linkedListPop(&sincTokens[toRemove[i]]);
+        stackPop(&sincTokens[toRemove[i]]);
 }
 
 /**
@@ -983,6 +983,6 @@ void _error(Parser* parser, int expectedTokenClass, Node* sincTokens[]) {
     stringDestroy(&errorMsg);
 
     parser->panic = true;
-    while (linkedListPeak(sincTokens[parser->lexer.tokenClass]) == -1)
+    while (stackPeak(sincTokens[parser->lexer.tokenClass]) == -1)
         parser->errorCount += nextToken(&parser->lexer, parser->output);
 }

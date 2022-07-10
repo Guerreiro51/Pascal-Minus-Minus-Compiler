@@ -6,7 +6,7 @@
 #define PARSER_H
 
 #include "../header/lexer.h"
-#include "../header/linkedList.h"
+#include "../header/stack.h"
 #include <stdbool.h>
 
 // struct returned by the compiler
