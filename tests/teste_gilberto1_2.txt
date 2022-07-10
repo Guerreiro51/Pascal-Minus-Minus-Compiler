@@ -2,7 +2,7 @@ program fatorial_sobre_pi;
 var x: real;
 begin
 	read(x,@);
-	x:=fat(x); {não existe em P--, procedimentos não tem retorno}
+	x:=fat(x); {nao existe em P--, procedimentos nao tem retorno}
 	x:=3;
 	fat(x);
 	write(x);
