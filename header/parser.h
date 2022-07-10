@@ -7,6 +7,7 @@
 
 #include "../header/lexer.h"
 #include "../header/linkedList.h"
+#include <stdbool.h>
 
 // struct returned by the compiler
 typedef struct {
@@ -14,6 +15,7 @@ typedef struct {
     FILE* output;
 
     int errorCount;
+    bool panic;
 } Parser;
 
 bool parserInit(Parser* parser, const char* sourceCodePath);

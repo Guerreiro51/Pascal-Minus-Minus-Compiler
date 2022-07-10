@@ -1,8 +1,11 @@
-program p;
-var x@:integer; {invalid char}
+program soma_i_j_vezes;
+var i, j, res: integer;
 begin
-    x:=+a - a + 2.a + 2.03 - 3; {invalid number}
-    while(x<3) do
-        x:=x+1;
-    @{this is a comment}@ {invalid char}
+read(i,j);
+1res:=0; {invalid identifier}
+while (j>0) du {should be do}
+	begin
+	res:=res+i;
+	j:=j-1;
+	end;
 end.

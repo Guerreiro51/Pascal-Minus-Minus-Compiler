@@ -1,4 +1,4 @@
-program fatorial_sobre_pi;
+program factorial_over_pi;
 var x: real;
 	procedure fat(n: real);
 	var i: integer;

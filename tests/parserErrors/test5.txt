@@ -1,5 +1,5 @@
 program my_program;
-var a, b: integer; {invalid identifier}
+var a, b: integer; 
 begin
     read(a,b);
     while(b>a {missing )} do 

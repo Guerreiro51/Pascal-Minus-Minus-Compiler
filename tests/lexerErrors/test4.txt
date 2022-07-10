@@ -1,11 +1,10 @@
-program soma_i_j_vezes;
-var i, j, res: integer;
+program p;
+var x:integer; 
+var y@:integer; {invalid char}
 begin
-read(i,j);
-1res:=0; {invalid identifier}
-while (j>0) du {should be do}
-	begin
-	res:=res+i;
-	j:=j-1;
-	end;
+    x:=1;
+    while(x<3) do
+        x:=x+1;
+    for x := 0 to - 10 do
+        write( x );
 end.

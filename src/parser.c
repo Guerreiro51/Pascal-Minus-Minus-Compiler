@@ -27,6 +27,7 @@
             _sincTokensDecr(sincTokens);                                           \
             return;                                                                \
         }                                                                          \
+        parser->panic = false;                                                     \
     }
 
 /**
@@ -35,20 +36,21 @@
  * @param _rule next rule function name
  * @param ... followers of the corresponding variable
  */
-#define NEXTRULE(rule, ...)                                                        \
-    {                                                                              \
-        static const int followers[] = {__VA_ARGS__};                              \
-        _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));    \
-        rule(parser, sincTokens);                                                  \
-        int return_flag = 0;                                                       \
-        if (linkedListPeak(sincTokens[parser->lexer.tokenClass]) > 0) {            \
-            return_flag = 1;                                                       \
-        }                                                                          \
-        _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int)); \
-        if (return_flag) {                                                         \
-            _sincTokensDecr(sincTokens);                                           \
-            return;                                                                \
-        }                                                                          \
+#define NEXTRULE(rule, ...)                                                                         \
+    {                                                                                               \
+        static const int followers[] = {__VA_ARGS__};                                               \
+        _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));                     \
+        rule(parser, sincTokens);                                                                   \
+        int return_flag = 0;                                                                        \
+        if (parser->panic && linkedListPeak(sincTokens[parser->lexer.tokenClass]) > 0) {            \
+            return_flag = 1;                                                                        \
+        }                                                                                           \
+        _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int));                  \
+        if (return_flag) {                                                                          \
+            _sincTokensDecr(sincTokens);                                                            \
+            return;                                                                                 \
+        }                                                                                           \
+        parser->panic = false;                                                                      \
     }
 
 /**
@@ -61,6 +63,7 @@
  */
 bool parserInit(Parser* parser, const char* sourceCodePath) {
     parser->errorCount = 0;
+    parser->panic = false;
 
     if (lexerInit(&parser->lexer, sourceCodePath)) {
         return true;
@@ -979,6 +982,7 @@ void _error(Parser* parser, int expectedTokenClass, Node* sincTokens[]) {
 
     stringDestroy(&errorMsg);
 
+    parser->panic = true;
     while (linkedListPeak(sincTokens[parser->lexer.tokenClass]) == -1)
         parser->errorCount += nextToken(&parser->lexer, parser->output);
 }

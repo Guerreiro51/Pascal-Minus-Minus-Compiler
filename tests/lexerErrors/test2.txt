@@ -1,7 +1,8 @@
 program p;
 var x@:integer; {invalid char}
 begin
-    x:=+a - a + 2.a + 2.03 - 3 - - 3; {invalid number}
+    x:=+a - a + 2.a + 2.03 - 3; {invalid number}
     while(x<3) do
         x:=x+1;
+    @{this is a comment}@ {invalid char}
 end.
