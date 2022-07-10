@@ -12,54 +12,54 @@
 #include "../header/string.h"
 
 /**
- * @brief Panic mode. When the expected token isn't found, his followers are added to the 
+ * @brief Panic mode. When the expected token isn't found, his followers are added to the
  * synchronization tokens vector, and the _error function calls the lexer repeatedly until
- * a synchronization token is found. Then, the new synchronization tokens are removed and, 
- * depending on the level of synchronization, the current rule returns while level > 0, 
+ * a synchronization token is found. Then, the new synchronization tokens are removed and,
+ * depending on the level of synchronization, the current rule returns while level > 0,
  * with the assistance of the NEXTRULE macro, or continues if level == 0, disabling the
  * panic mode.
  *
  * @param expectedTokenClass expected token
  * @param ... synchronization tokens that must be added
  */
-#define PANICMODE(expectedTokenClass, ...)                                          \
-    {                                                                               \
-        static const int followers[] = {__VA_ARGS__};                               \
-        _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));     \
-        _error(parser, expectedTokenClass, sincTokens);                             \
-        int level = stackPeak(sincTokens[parser->lexer.tokenClass]);                \
-        _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int));  \
-        if (level != 0) {                                                           \
-            _sincTokensDecr(sincTokens);                                            \
-            return;                                                                 \
-        }                                                                           \
-        parser->panic = false;                                                      \
+#define PANICMODE(expectedTokenClass, ...)                                         \
+    {                                                                              \
+        static const int followers[] = {__VA_ARGS__};                              \
+        _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));    \
+        _error(parser, expectedTokenClass, sincTokens);                            \
+        int level = stackPeak(sincTokens[parser->lexer.tokenClass]);               \
+        _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int)); \
+        if (level != 0) {                                                          \
+            _sincTokensDecr(sincTokens);                                           \
+            return;                                                                \
+        }                                                                          \
+        parser->panic = false;                                                     \
     }
 
 /**
  * @brief Default treatment of next rule call. First we add the followers of the rule to sincTokens
  * and call the rule. After that, we remove the added tokens. Furthermore, we must check whether we are
- * in panic mode or not, if so, the level of the synchronization token must be checked to identify if the 
+ * in panic mode or not, if so, the level of the synchronization token must be checked to identify if the
  * synchronization occurs in the current rule or not.
- * 
+ *
  * @param rule next rule function name
  * @param ... followers of the corresponding variable
  */
-#define NEXTRULE(rule, ...)                                                                         \
-    {                                                                                               \
-        static const int followers[] = {__VA_ARGS__};                                               \
-        _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));                     \
-        rule(parser, sincTokens);                                                                   \
-        int return_flag = 0; /*check if panic mode is active and level is greater than 0*/          \
-        if (parser->panic && stackPeak(sincTokens[parser->lexer.tokenClass]) > 0) {                 \
-            return_flag = 1;                                                                        \
-        }                                                                                           \
-        _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int));                  \
-        if (return_flag) {                                                                          \
-            _sincTokensDecr(sincTokens);                                                            \
-            return;                                                                                 \
-        }                                                                                           \
-        parser->panic = false;                                                                      \
+#define NEXTRULE(rule, ...)                                                                \
+    {                                                                                      \
+        static const int followers[] = {__VA_ARGS__};                                      \
+        _sincTokensAdd(sincTokens, followers, sizeof(followers) / sizeof(int));            \
+        rule(parser, sincTokens);                                                          \
+        int return_flag = 0; /*check if panic mode is active and level is greater than 0*/ \
+        if (parser->panic && stackPeak(sincTokens[parser->lexer.tokenClass]) > 0) {        \
+            return_flag = 1;                                                               \
+        }                                                                                  \
+        _sincTokensRemove(sincTokens, followers, sizeof(followers) / sizeof(int));         \
+        if (return_flag) {                                                                 \
+            _sincTokensDecr(sincTokens);                                                   \
+            return;                                                                        \
+        }                                                                                  \
+        parser->panic = false;                                                             \
     }
 
 /**
@@ -102,9 +102,9 @@ void parserDestroy(Parser* parser) {
  * @brief Initialize vector of synchronization tokens. Each element is a stack
  * that records all the levels at which the corresponding token is a synchronization
  * symbol. Initially, there are no synchronization symbols, to all elements of the vector
- * are null. 
- * On the elements of the stack, values greater then or equal to 0 indicate the depth 
- * of the synchronization, while NULL stacks indicates that that token is not a synchronization 
+ * are null.
+ * On the elements of the stack, values greater then or equal to 0 indicate the depth
+ * of the synchronization, while NULL stacks indicates that that token is not a synchronization
  * token at the moment
  *
  * @param sincTokens synchronization token vector
@@ -284,7 +284,7 @@ void _dc_c(Parser* parser, Node* sincTokens[]) {
     } else {
         PANICMODE(ID, ASSIGN)
     }
-    if ( !strcmp(parser->lexer.buffer.str, "=") ) {
+    if (!strcmp(parser->lexer.buffer.str, "=")) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
         PANICMODE(EQUALS, N_INTEGER, N_REAL)
