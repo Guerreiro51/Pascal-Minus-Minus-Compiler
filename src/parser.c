@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../header/string.h"
 
@@ -270,12 +271,12 @@ void _dc_c(Parser* parser, Node* sincTokens[]) {
     if (parser->lexer.tokenClass == ID) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(ID, ASSIGN)  // instead of ASSIGN should be only '='
+        FOLLOWERS(ID, ASSIGN)
     }
-    if (parser->lexer.tokenClass == ASSIGN) {  // instead of ASSIGN should be only '='
+    if ( !strcmp(parser->lexer.buffer.str, "=") ) {
         parser->errorCount += nextToken(&parser->lexer, parser->output);
     } else {
-        FOLLOWERS(ASSIGN, N_INTEGER, N_REAL)  // instead of ASSIGN should be only '='
+        FOLLOWERS(EQUALS, N_INTEGER, N_REAL)
     }
 
     NEXTRULE(_numero, SEMICOLON)

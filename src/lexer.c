@@ -443,6 +443,8 @@ const char* lexerTokenClassUserFriendlyName(int tokenClass) {
             return "type-specifier";
         case COMMAND:
             return "command";
+        case EQUALS:
+            return "=";
         default:
             return tokenClassName[tokenClass];
     }

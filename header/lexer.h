@@ -58,7 +58,7 @@ enum TOKEN_CLASS { LAMBDA,
                    WHILE,
                    ERROR };
 
-enum MULTIPLE_EXPECTED {NUMBER = INT_MIN, TYPES, COMMAND};
+enum MULTIPLE_EXPECTED {NUMBER = INT_MIN, TYPES, COMMAND, EQUALS};
 
 // defines the structures necessary for lexer operation
 typedef struct {
