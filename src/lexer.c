@@ -62,9 +62,6 @@ void lexerDestroy(Lexer* lexer) {
  * @param output file to output errors
  */
 int nextToken(Lexer* lexer, FILE* output) {
-    if (lexer->fscanfFlag == EOF)
-        return 0;
-
     // initial state
     lexer->currState = 0;
 
@@ -299,8 +296,6 @@ void _fillWord(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUM
  * @param lexer a lexer instance
  */
 void _nextChar(Lexer* lexer) {
-    if (lexer->fscanfFlag == EOF)
-        return;
     lexer->fscanfFlag = fscanf(lexer->sourceCode, "%c", &lexer->currChar);
     if (lexer->fscanfFlag != EOF) {
         lexer->currLine += (lexer->currChar == '\n');

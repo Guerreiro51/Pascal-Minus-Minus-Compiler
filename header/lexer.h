@@ -20,7 +20,7 @@
 #define OP_ADD_STATE 10
 #define OP_UN_STATE 23
 
-#define N_TOKEN_CLASS 32  // number of token classes
+#define N_TOKEN_CLASS 33  // number of token classes
 
 // existing token classes
 enum TOKEN_CLASS {  LAMBDA, N_REAL, N_INTEGER, OP_UN, OP_ADD, OP_MULT, RELATION, 
