@@ -414,11 +414,17 @@ const char* lexerErrorMessage(int currState) {
  */
 const char* lexerTokenClassName(int tokenClass) {
     // indexes token class names for user-friendly printing
-    static const char* tokenClassName[] = {"EOF", "N_REAL", "N_INTEGER", "OP_UN", "OP_ADD", "OP_MULT", "RELATION",
-                                           "ASSIGN", "DECLARE_TYPE", "SEMICOLON", "COLON",
-                                           "OPEN_PAR", "CLOSE_PAR", "DOT", "ID", "BEGIN", "CONST",
-                                           "DO", "END", "ELSE", "IF", "INTEGER", "FOR", "PROGRAM", "PROCEDURE",
-                                           "REAL", "READ", "THEN", "TO", "VAR", "WRITE", "WHILE", "ERROR"};
+    // static const char* tokenClassName[] = {"EOF", "N_REAL", "N_INTEGER", "OP_UN", "OP_ADD", "OP_MULT", "RELATION",
+    //                                        "ASSIGN", "DECLARE_TYPE", "SEMICOLON", "COLON",
+    //                                        "OPEN_PAR", "CLOSE_PAR", "DOT", "ID", "BEGIN", "CONST",
+    //                                        "DO", "END", "ELSE", "IF", "INTEGER", "FOR", "PROGRAM", "PROCEDURE",
+    //                                        "REAL", "READ", "THEN", "TO", "VAR", "WRITE", "WHILE", "ERROR"};
+
+    static const char* tokenClassName[] = {"EOF", "real number", "integer number", "+ or - (unary operator)",
+                                            "+ or - (addition operator)", "* or /", "=, <>, >, <, >= or <=", 
+                                            ":=", ":", ";", ",", "(", ")", ".", "identifier", "begin",
+                                            "const", "do", "end", "else", "if", "'integer'", "for", "program", "procedure",
+                                            "'real'", "read", "then", "to", "var", "write", "while", "ERROR"};
     return tokenClassName[tokenClass];
 }
 

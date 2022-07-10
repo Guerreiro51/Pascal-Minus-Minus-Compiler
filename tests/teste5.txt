@@ -1,3 +1,4 @@
+{cascata de erro}
 program p;
 isto eh um comentario}
 var x@:integer;
