@@ -46,7 +46,7 @@ bool lexerInit(Lexer* lexer, const char* sourceFilePath) {
 
 /**
  * @brief Destroy file handles and the buffer
- * 
+ *
  * @param lexer A lexer instance
  */
 void lexerDestroy(Lexer* lexer) {
@@ -332,7 +332,7 @@ void _dealWithEOF(Lexer* lexer) {
 
 /**
  * @brief Advances in the transition matrix given the currState and currChar
- * 
+ *
  * @param lexer a lexer instance
  */
 void _nextState(Lexer* lexer) {
@@ -347,7 +347,7 @@ void _nextState(Lexer* lexer) {
 /**
  * @brief Identifies what is the last token class. Deals with negative token class
  * (retreat) and checks if it is a protected symbol. Update lastWasNumberOrIdent flag
- * 
+ *
  * @param lexer a lexer instance
  */
 void _identifyTokenClass(Lexer* lexer) {
@@ -370,7 +370,7 @@ void _identifyTokenClass(Lexer* lexer) {
 /**
  * @brief Checks if the last token read was a protected symbol by
  * walking through the protected symbol matrix.
- * 
+ *
  * @param lexer a lexer instance
  * @return int corresponding token class (protected symbol or ID)
  */
@@ -421,16 +421,16 @@ const char* lexerTokenClassName(int tokenClass) {
     //                                        "REAL", "READ", "THEN", "TO", "VAR", "WRITE", "WHILE", "ERROR"};
 
     static const char* tokenClassName[] = {"EOF", "real number", "integer number", "+ or - (unary operator)",
-                                            "+ or - (addition operator)", "* or /", "=, <>, >, <, >= or <=", 
-                                            ":=", ":", ";", ",", "(", ")", ".", "identifier", "begin",
-                                            "const", "do", "end", "else", "if", "'integer'", "for", "program", "procedure",
-                                            "'real'", "read", "then", "to", "var", "write", "while", "ERROR"};
+                                           "+ or - (addition operator)", "* or /", "=, <>, >, <, >= or <=",
+                                           ":=", ":", ";", ",", "(", ")", ".", "identifier", "begin",
+                                           "const", "do", "end", "else", "if", "'integer'", "for", "program", "procedure",
+                                           "'real'", "read", "then", "to", "var", "write", "while", "ERROR"};
     return tokenClassName[tokenClass];
 }
 
 /**
  * @brief Col count is incremented, just for showing purposes, in case there was a retreat
- * 
+ *
  * @param lexer a lexer instance
  * @return int current col without considering a possible retreat
  */
@@ -441,7 +441,7 @@ int lexerCurrColWithoutRetreat(Lexer* lexer) {
 
 /**
  * @brief Returns the lexer buffer or EOF if the last token was EOF
- * 
+ *
  * @param lexer a lexer instance
  * @return the lexer buffer or EOF if the last token was EOF
  */
