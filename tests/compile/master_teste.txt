@@ -58,11 +58,12 @@ begin
                             begin
                                 read(a, c, b);
                             end;
-                        end    
+                        end;    
                     end;
                 end;
             end;    
         end;
-    end;
+        write(a);
+    end
     else c:=a/5.5;
 end.
