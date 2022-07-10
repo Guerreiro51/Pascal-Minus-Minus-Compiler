@@ -1,0 +1,29 @@
+program ___identificadorGrandao_Para_Encher_o_buffer_e_dar_overflow_s3gf4ult_e_explodir_o_codigo_desavisado_____123___;
+const constante := 3.14; {deveria ser =}
+const constante2 := 314; {deveria ser =}
+var variavel1, variavel2, variavel3 : integer;
+var variavelReal : real;
+var variavelInteira : real;
+
+procedure procedimento(a, b, c : real{; d : integer; e : real});
+var varLocal : real;
+var varLocal2 : integer;
+begin
+    read(a);
+    read(a, b);
+    write(a, b, c);
+    write(b);
+    
+end;
+
+procedure procedimento2;
+begin
+end;
+
+begin
+    while(b < c) do
+    begin
+        write(a);
+    end;
+    while(a > c) do c := a + 1;
+end.

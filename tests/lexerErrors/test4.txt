@@ -1,10 +1,9 @@
 program soma_i_j_vezes;
-{erro de ident, problema com palavra reservada}
 var i, j, res: integer;
 begin
 read(i,j);
-1res:=0;
-while (j>0) du
+1res:=0; {invalid identifier}
+while (j>0) du {should be do}
 	begin
 	res:=res+i;
 	j:=j-1;

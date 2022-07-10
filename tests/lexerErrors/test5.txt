@@ -1,7 +1,6 @@
-{comentario}
-
 program p;
-var x:integer;
+var x:integer; 
+var y@:integer; {invalid char}
 begin
     x:=1;
     while(x<3) do

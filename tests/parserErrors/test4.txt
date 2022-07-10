@@ -1,0 +1,18 @@
+program fatorial_sobre_pi;
+var x: real;
+	procedure fat(n: real);
+	var i: integer;
+	begin
+		fat:=3.14;
+		for i:=2 to n do
+			fat:=fat*i;	
+	end;
+
+begin
+	read(x,y);
+	x:=fat(x); {doesn't exist in P--, procedures have no return}
+	x:=3;
+	fat(x);
+	write(x);
+{unclosed comment...
+end.

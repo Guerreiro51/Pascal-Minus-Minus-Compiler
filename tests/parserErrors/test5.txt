@@ -1,0 +1,10 @@
+program my_program;
+var a, b: integer; {invalid identifier}
+begin
+    read(a,b);
+    while(b>a {missing )} do 
+        begin
+        write(a);
+        a=a+1; {should be :=}
+        end;
+end.
