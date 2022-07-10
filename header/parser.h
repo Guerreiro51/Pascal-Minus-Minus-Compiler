@@ -25,6 +25,7 @@ void _error(Parser* parser, int expectedTokenClass, int sincTokens[]);
 void _sincTokensInit(int sincTokens[]);
 void _sincTokensCopy(int sincTokens[], int copySincTokens[]);
 void _sincTokensIncr(int sincTokens[]);
+void _sincTokensDecr(int sincTokens[]);
 void _sincTokensAdd(int sincTokens[], const int toAdd[], unsigned long toAddSize);
 
 // P-- grammar

@@ -62,6 +62,9 @@ void lexerDestroy(Lexer* lexer) {
  * @param output file to output errors
  */
 int nextToken(Lexer* lexer, FILE* output) {
+    if (lexer->fscanfFlag == EOF)
+        return 0;
+
     // initial state
     lexer->currState = 0;
 
@@ -92,7 +95,7 @@ int nextToken(Lexer* lexer, FILE* output) {
         printf("Lexer error on line %d col %d ('%s'): %s\n", lexer->currLine, lexerCurrColWithoutRetreat(lexer), lexer->buffer.str, lexerErrorMessage(lexer->currState));
         fprintf(output, "Lexer error on line %d col %d ('%s'): %s\n", lexer->currLine, lexerCurrColWithoutRetreat(lexer), lexer->buffer.str, lexerErrorMessage(lexer->currState));
         return nextToken(lexer, output) + 1;
-    } else if (lexer->tokenClass == EOF) {
+    } else if (lexer->tokenClass == LAMBDA) {
         printf("EOF\n");
         fprintf(output, "EOF\n");
     } else {
@@ -296,8 +299,10 @@ void _fillWord(int protectedSymbolMatrix[NUMBER_OF_STATES_PROTECTED_SYMBOLS][NUM
  * @param lexer a lexer instance
  */
 void _nextChar(Lexer* lexer) {
+    if (lexer->fscanfFlag == EOF)
+        return;
     lexer->fscanfFlag = fscanf(lexer->sourceCode, "%c", &lexer->currChar);
-    if (lexer->fscanfFlag != -1) {
+    if (lexer->fscanfFlag != EOF) {
         lexer->currLine += (lexer->currChar == '\n');
         lexer->currCol = (lexer->currChar == '\n') ? 1 : lexer->currCol + 1 + (lexer->currChar == '\t') * 3;
     }
@@ -313,7 +318,7 @@ void _nextChar(Lexer* lexer) {
  */
 void _dealWithEOF(Lexer* lexer) {
     if (lexer->currState == 0) {  // EOF is recognized only from a0
-        lexer->tokenClass = EOF;
+        lexer->tokenClass = LAMBDA;
     } else if (lexer->currState == COMMENT_STATE) {  // EOF inside a comment, error
         lexer->currState = COMMENT_STATE + 1;
         lexer->tokenClass = lexer->finalStateClass[lexer->currState];
@@ -414,12 +419,12 @@ const char* lexerErrorMessage(int currState) {
  */
 const char* lexerTokenClassName(int tokenClass) {
     // indexes token class names for user-friendly printing
-    static const char* tokenClassName[] = {"", "N_REAL", "N_INTEGER", "OP_UN", "OP_ADD", "OP_MULT", "RELATION",
+    static const char* tokenClassName[] = {"EOF", "N_REAL", "N_INTEGER", "OP_UN", "OP_ADD", "OP_MULT", "RELATION",
                                            "ASSIGN", "DECLARE_TYPE", "SEMICOLON", "COLON",
                                            "OPEN_PAR", "CLOSE_PAR", "DOT", "ID", "BEGIN", "CONST",
                                            "DO", "END", "ELSE", "IF", "INTEGER", "FOR", "PROGRAM", "PROCEDURE",
                                            "REAL", "READ", "THEN", "TO", "VAR", "WRITE", "WHILE", "ERROR"};
-    return (tokenClass != -1) ? tokenClassName[tokenClass] : "EOF";
+    return tokenClassName[tokenClass];
 }
 
 /**
