@@ -963,11 +963,17 @@ void _error(Parser* parser, int expectedTokenClass, Node* sincTokens[]) {
     stringAppendInt(&errorMsg, parser->lexer.currLine);
     stringAppendCstr(&errorMsg, " col ");
     stringAppendInt(&errorMsg, lexerCurrColWithoutRetreat(&parser->lexer));
-    stringAppendCstr(&errorMsg, ": expected ");
-    stringAppendCstr(&errorMsg, lexerTokenClassName(expectedTokenClass));
-    stringAppendCstr(&errorMsg, " but found ");
-    stringAppendCstr(&errorMsg, lexerBuffer(&parser->lexer));
-    stringAppendChar(&errorMsg, '\n');
+    if (parser->lexer.fscanfFlag == EOF) {
+        stringAppendCstr(&errorMsg, ": unexpected end of file (expected ");
+        stringAppendCstr(&errorMsg, lexerTokenClassUserFriendlyName(expectedTokenClass));
+        stringAppendCstr(&errorMsg, ")\n");
+    } else {
+        stringAppendCstr(&errorMsg, ": expected ");
+        stringAppendCstr(&errorMsg, lexerTokenClassUserFriendlyName(expectedTokenClass));
+        stringAppendCstr(&errorMsg, " but found ");
+        stringAppendCstr(&errorMsg, lexerBuffer(&parser->lexer));
+        stringAppendChar(&errorMsg, '\n');
+    }
     printf("%s", errorMsg.str);
     fprintf(parser->output, "%s", errorMsg.str);
 

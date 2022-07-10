@@ -23,11 +23,39 @@
 #define N_TOKEN_CLASS 33  // number of token classes
 
 // existing token classes
-enum TOKEN_CLASS {  LAMBDA, N_REAL, N_INTEGER, OP_UN, OP_ADD, OP_MULT, RELATION, 
-                    ASSIGN, DECLARE_TYPE, SEMICOLON, COLON, 
-                    OPEN_PAR, CLOSE_PAR, DOT, ID, BEGIN, CONST, 
-                    DO, END, ELSE, IF, INTEGER, FOR, PROGRAM, PROCEDURE,
-                    REAL, READ, THEN, TO, VAR, WRITE, WHILE, ERROR};
+enum TOKEN_CLASS { LAMBDA,
+                   N_REAL,
+                   N_INTEGER,
+                   OP_UN,
+                   OP_ADD,
+                   OP_MULT,
+                   RELATION,
+                   ASSIGN,
+                   DECLARE_TYPE,
+                   SEMICOLON,
+                   COLON,
+                   OPEN_PAR,
+                   CLOSE_PAR,
+                   DOT,
+                   ID,
+                   BEGIN,
+                   CONST,
+                   DO,
+                   END,
+                   ELSE,
+                   IF,
+                   INTEGER,
+                   FOR,
+                   PROGRAM,
+                   PROCEDURE,
+                   REAL,
+                   READ,
+                   THEN,
+                   TO,
+                   VAR,
+                   WRITE,
+                   WHILE,
+                   ERROR };
 
 // defines the structures necessary for lexer operation
 typedef struct {
@@ -58,10 +86,11 @@ bool lexerInit(Lexer* lexer, const char* sourceFilePath);
 void lexerDestroy(Lexer* lexer);
 int nextToken(Lexer* lexer, FILE* output);  // gets next token
 
-int lexerCurrColWithoutRetreat(Lexer* lexer);      // return lexer col considering eventual retreats (for readability only)
-const char* lexerErrorMessage(int currState);      // return error description given current automaton state
-const char* lexerTokenClassName(int token_class);  // returns token class name given token class number
-char* lexerBuffer(Lexer* lexer);                   // return the buffer string
+int lexerCurrColWithoutRetreat(Lexer* lexer);                 // return lexer col considering eventual retreats (for readability only)
+const char* lexerErrorMessage(int currState);                 // return error description given current automaton state
+const char* lexerTokenClassName(int token_class);             // returns token class name given token class number
+const char* lexerTokenClassUserFriendlyName(int tokenClass);  // return user friendly token class name given token class number
+char* lexerBuffer(Lexer* lexer);                              // return the buffer string
 
 // auxiliary functions called on lexer initialization to build some necessary structures
 void _buildTransitionMatrix(int transitionMatrix[NUMBER_OF_STATES][NUMBER_OF_CHARS]);

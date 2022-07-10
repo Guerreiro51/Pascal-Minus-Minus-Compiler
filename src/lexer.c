@@ -407,20 +407,30 @@ const char* lexerErrorMessage(int currState) {
 }
 
 /**
- * @brief Returns token string to be used as output
+ * @brief Returns token string to be used as output for debugging
  *
  * @param tokenClass token class number
  * @return char* token class name
  */
 const char* lexerTokenClassName(int tokenClass) {
-    // indexes token class names for user-friendly printing
-    // static const char* tokenClassName[] = {"EOF", "N_REAL", "N_INTEGER", "OP_UN", "OP_ADD", "OP_MULT", "RELATION",
-    //                                        "ASSIGN", "DECLARE_TYPE", "SEMICOLON", "COLON",
-    //                                        "OPEN_PAR", "CLOSE_PAR", "DOT", "ID", "BEGIN", "CONST",
-    //                                        "DO", "END", "ELSE", "IF", "INTEGER", "FOR", "PROGRAM", "PROCEDURE",
-    //                                        "REAL", "READ", "THEN", "TO", "VAR", "WRITE", "WHILE", "ERROR"};
+    // indexes token class names for tokenOutput.txt
+    static const char* tokenClassName[] = {"EOF", "N_REAL", "N_INTEGER", "OP_UN", "OP_ADD", "OP_MULT", "RELATION",
+                                           "ASSIGN", "DECLARE_TYPE", "SEMICOLON", "COLON",
+                                           "OPEN_PAR", "CLOSE_PAR", "DOT", "ID", "BEGIN", "CONST",
+                                           "DO", "END", "ELSE", "IF", "INTEGER", "FOR", "PROGRAM", "PROCEDURE",
+                                           "REAL", "READ", "THEN", "TO", "VAR", "WRITE", "WHILE", "ERROR"};
+    return tokenClassName[tokenClass];
+}
 
-    static const char* tokenClassName[] = {"EOF", "real number", "integer number", "+ or - (unary operator)",
+/**
+ * @brief Returns token string to be used as output for the user
+ *
+ * @param tokenClass token class number
+ * @return char* user friendly token class name
+ */
+const char* lexerTokenClassUserFriendlyName(int tokenClass) {
+    // indexes token class names for user-friendly printing
+    static const char* tokenClassName[] = {"end of file", "real number", "integer number", "+ or - (unary operator)",
                                            "+ or - (addition operator)", "* or /", "=, <>, >, <, >= or <=",
                                            ":=", ":", ";", ",", "(", ")", ".", "identifier", "begin",
                                            "const", "do", "end", "else", "if", "'integer'", "for", "program", "procedure",
